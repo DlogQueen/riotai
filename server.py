@@ -73,19 +73,6 @@ print("🧠 Memory engine online")
 print("=" * 60)
 
 
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS chat_history
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  role TEXT, content TEXT, persona TEXT,
-                  model TEXT, emotion TEXT, timestamp TEXT)''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-
 def get_client(model_key='cloud'):
     m = config['models'][model_key]
     return OpenAI(base_url=m['base_url'], api_key=m['api_key'])
