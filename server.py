@@ -283,6 +283,9 @@ def chat_stream():
                 threading.Thread(target=save_session_summary, args=(recent, persona_key, api_key), daemon=True).start()
 
         except Exception as e:
+            import traceback
+            print(f"❌ [CHAT] Error: {e}")
+            traceback.print_exc()
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return Response(generate(), mimetype='text/event-stream')
