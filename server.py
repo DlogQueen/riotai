@@ -21,6 +21,13 @@ except ImportError:
     pass
 
 try:
+    from twilio_engine import call_user, send_sms, handle_incoming_call, handle_voice_response
+    TWILIO_AVAILABLE = True
+except ImportError:
+    TWILIO_AVAILABLE = False
+    print("⚠️  Twilio not installed: pip install twilio")
+
+try:
     from voice_vision import VoiceEngine, VisionEngine
     VOICE_VISION_AVAILABLE = True
 except ImportError:
@@ -440,6 +447,56 @@ def n8n_call_tool():
         return jsonify(resp.json())
     except Exception as e:
         return jsonify({'error': str(e)})
+
+
+# ── TWILIO ─────────────────────────────────────────────────────────────────────
+
+@app.route('/api/twilio/call', methods=['POST'])
+def twilio_call():
+    """Raven calls your phone"""
+    if not TWILIO_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Twilio not installed'})
+    data = request.json
+    to_number = data.get('to')
+    message = data.get('message', "Hey, it's Raven. Just checking in. Stay punk. 🖤")
+    if not to_number:
+        return jsonify({'success': False, 'error': 'No phone number provided'})
+    result = call_user(to_number, message)
+    return jsonify(result)
+
+
+@app.route('/api/twilio/sms', methods=['POST'])
+def twilio_sms():
+    """Raven texts your phone"""
+    if not TWILIO_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Twilio not installed'})
+    data = request.json
+    to_number = data.get('to')
+    message = data.get('message', '')
+    if not to_number or not message:
+        return jsonify({'success': False, 'error': 'Missing to or message'})
+    result = send_sms(to_number, message)
+    return jsonify(result)
+
+
+@app.route('/api/twilio/incoming', methods=['POST'])
+def twilio_incoming():
+    """Webhook - someone calls the Twilio number"""
+    persona = request.args.get('persona', 'raven')
+    base_url = request.url_root.rstrip('/')
+    twiml = handle_incoming_call(base_url, persona)
+    return Response(twiml, mimetype='text/xml')
+
+
+@app.route('/api/twilio/respond', methods=['POST'])
+def twilio_respond():
+    """Webhook - process speech and respond"""
+    speech = request.form.get('SpeechResult', '')
+    persona = request.args.get('persona', 'raven')
+    base_url = request.url_root.rstrip('/')
+    api_key = config['models']['cloud']['api_key']
+    twiml = handle_voice_response(speech, persona, api_key, base_url)
+    return Response(twiml, mimetype='text/xml')
 
 
 if __name__ == '__main__':

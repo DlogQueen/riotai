@@ -218,6 +218,13 @@
                 <div id="memory-preview" style="font-size:10px;color:#aaa;line-height:1.6;max-height:120px;overflow-y:auto;"></div>
             </div>
             <div class="sidebar-section">
+                <div class="sidebar-title">📞 TWILIO</div>
+                <input id="call-number" type="tel" placeholder="+1234567890"
+                    style="width:100%;padding:8px;background:#000;border:1px solid #ff0080;color:#fff;font-family:'Roboto Mono',monospace;font-size:11px;margin-bottom:8px;">
+                <button class="toolbar-btn" style="width:100%;margin-bottom:8px;" onclick="ravenCall()">📞 RAVEN CALLS YOU</button>
+                <button class="toolbar-btn" style="width:100%;border-color:#00ff9f;color:#00ff9f;" onclick="ravenText()">💬 RAVEN TEXTS YOU</button>
+            </div>
+            <div class="sidebar-section">
                 <div class="sidebar-title">🔌 N8N STATUS</div>
                 <button class="toolbar-btn" style="width:100%;" onclick="checkN8n()">⚡ CHECK TOOLS</button>
                 <div id="n8n-status" style="font-size:11px;color:#00ff9f;margin-top:8px;"></div>
@@ -527,7 +534,38 @@
             else updateEmotion('neutral');
         }
 
-        // ── N8N ─────────────────────────────────────────────────────────────
+        // ── Twilio ────────────────────────────────────────────────────────────
+        async function ravenCall() {
+            const number = document.getElementById('call-number').value.trim();
+            if (!number) { alert('Enter your phone number first'); return; }
+            const lastMsg = [...document.querySelectorAll('.message.assistant')].pop();
+            const message = lastMsg ? lastMsg.querySelector('.message-content').innerText.replace('🔊','').trim().slice(0,200) : "Hey, it's Raven. Just checking in. Stay punk. 🖤";
+            try {
+                const resp = await fetch('/api/twilio/call', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ to: number, message })
+                });
+                const data = await resp.json();
+                addMessage('assistant', data.success ? `📞 Calling you at ${number}... pick up! 🖤` : `❌ Call failed: ${data.error}`);
+            } catch(e) { addMessage('assistant', '❌ ' + e.message); }
+        }
+
+        async function ravenText() {
+            const number = document.getElementById('call-number').value.trim();
+            if (!number) { alert('Enter your phone number first'); return; }
+            const lastMsg = [...document.querySelectorAll('.message.assistant')].pop();
+            const message = lastMsg ? lastMsg.querySelector('.message-content').innerText.replace('🔊','').trim().slice(0,160) : "Hey it's Raven 🖤⚡ Stay punk.";
+            try {
+                const resp = await fetch('/api/twilio/sms', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ to: number, message })
+                });
+                const data = await resp.json();
+                addMessage('assistant', data.success ? `💬 Text sent to ${number} 🖤` : `❌ SMS failed: ${data.error}`);
+            } catch(e) { addMessage('assistant', '❌ ' + e.message); }
+        }
         async function checkN8n() {
             document.getElementById('n8n-status').textContent = 'Connecting...';
             try {
