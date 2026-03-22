@@ -1,0 +1,12 @@
+.env
+*.db
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+temp_image.jpg
+recording.wav
+output.mp3
+*.mp3
+*.wav
+AppIcon.iconset/
