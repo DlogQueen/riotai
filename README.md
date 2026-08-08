@@ -91,10 +91,13 @@ functions the rest of the app calls.
 
 ## Deploying
 
-`vercel.json` is set up for Vercel's Python runtime. Set the env vars from
-the table above in your Vercel project settings. For anything longer-lived
-than local dev, set `SUPABASE_URL`/`SUPABASE_KEY` so memory survives across
-deploys (local SQLite doesn't persist on most serverless platforms).
+`vercel.json` is set up for Vercel's Python runtime. Add the env vars from
+the table above directly in your Vercel project's **Settings → Environment
+Variables** (not via `vercel.json` - the old `"env": {"KEY": "@secret"}`
+alias syntax requires pre-creating secrets with `vercel secrets add` and
+just breaks the deploy otherwise). For anything longer-lived than local dev,
+set `SUPABASE_URL`/`SUPABASE_KEY` so memory survives across deploys (local
+SQLite doesn't persist on most serverless platforms).
 
 ## Disclaimer
 
