@@ -1,6 +1,6 @@
 """
-EMOTION DETECTION ENGINE
-Text sentiment + optional face detection
+"READ THE ROOM" ENGINE
+Text sentiment + optional face detection, so Coach can adjust his tone
 """
 
 from typing import Dict, Any
@@ -45,11 +45,11 @@ class EmotionDetector:
 
             text_lower = text.lower()
             keywords = {
-                'happy':   ['happy', 'joy', 'excited', 'great', 'awesome', 'love', 'sick', 'dope', 'rad', 'stoked'],
-                'sad':     ['sad', 'depressed', 'unhappy', 'down', 'bummed', 'crying'],
-                'angry':   ['angry', 'mad', 'furious', 'pissed', 'annoyed', 'hate'],
+                'happy':   ['happy', 'joy', 'excited', 'great', 'awesome', 'love', 'fired up', 'pumped'],
+                'sad':     ['sad', 'depressed', 'unhappy', 'down', 'discouraged', 'crying'],
+                'angry':   ['angry', 'mad', 'furious', 'pissed', 'annoyed', 'hate', 'frustrated'],
                 'anxious': ['worried', 'anxious', 'nervous', 'stressed', 'scared'],
-                'excited': ['excited', 'stoked', 'pumped', 'hyped', 'omg', 'lets go']
+                'excited': ['excited', 'stoked', 'pumped', 'hyped', 'lets go', "let's go"]
             }
 
             emotion_counts = {}

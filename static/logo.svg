@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <pattern id="hound" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="4" fill="#ffffff"/>
+      <g fill="#101010">
+        <polygon points="0,0 2,0 2,2 0,2"/>
+        <polygon points="2,2 4,2 4,4 2,4"/>
+        <polygon points="2,0 4,2 2,2"/>
+        <polygon points="0,2 2,4 2,2"/>
+      </g>
+    </pattern>
+  </defs>
+
+  <circle cx="60" cy="60" r="58" fill="url(#hound)" stroke="#9E1B32" stroke-width="4"/>
+  <circle cx="60" cy="60" r="46" fill="#9E1B32" stroke="#ffffff" stroke-width="3"/>
+
+  <!-- houndstooth hat brim -->
+  <path d="M32 58 Q60 40 88 58 L88 62 Q60 46 32 62 Z" fill="url(#hound)" stroke="#101010" stroke-width="1"/>
+  <!-- hat crown -->
+  <rect x="44" y="34" width="32" height="26" rx="3" fill="url(#hound)" stroke="#101010" stroke-width="1"/>
+  <rect x="44" y="52" width="32" height="6" fill="#101010"/>
+
+  <text x="60" y="98" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700"
+        font-size="22" fill="#ffffff" letter-spacing="1">BB</text>
+</svg>

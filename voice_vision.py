@@ -1,6 +1,6 @@
 """
 VOICE & VISION ENGINE
-STT, TTS, and Vision for RIOT AI
+STT, TTS, and Vision for Coach Bear AI
 All deps are optional - graceful fallback if not installed
 """
 
@@ -46,7 +46,7 @@ class VoiceEngine:
             print(f"❌ [STT] Error: {e}")
             return ""
 
-    def text_to_speech(self, text: str, voice: str = "nova", output_path: str = None) -> str:
+    def text_to_speech(self, text: str, voice: str = "onyx", output_path: str = None) -> str:
         """Convert text to speech - returns audio bytes path"""
         try:
             import tempfile

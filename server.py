@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-RIOT AI - Break rules. Build empires. Stay punk.
+COACH BEAR AI
+A declassified-black-project bit: chat, voice, and a phone hotline with an AI
+tribute to Paul "Bear" Bryant. Parody/fan project — see persona/bear_system_prompt.md
+and the disclaimer in config.json for the (fictional) lore and the real disclaimer.
 """
 
 import json
 import os
-import requests
 import base64
+import threading
 import tempfile
 from pathlib import Path
-from datetime import datetime
 from flask import Flask, render_template, request, jsonify, Response, send_file
 from openai import OpenAI
 
@@ -39,6 +41,8 @@ try:
 except ImportError:
     EMOTION_AVAILABLE = False
 
+from config_loader import get_config
+from sports_engine import get_scoreboard, get_game_snapshot, snapshot_to_text
 from database import (
     save_message, get_recent_messages, get_history,
     clear_history, count_messages
@@ -49,16 +53,7 @@ from memory import (
 )
 
 BASE_DIR = Path(__file__).parent
-CONFIG_FILE = BASE_DIR / "config.json"
-
-with open(CONFIG_FILE) as f:
-    config = json.load(f)
-
-# Override with env vars if present (production)
-if os.environ.get('OPENAI_API_KEY'):
-    config['models']['cloud']['api_key'] = os.environ['OPENAI_API_KEY']
-if os.environ.get('OPENAI_MODEL'):
-    config['models']['cloud']['model'] = os.environ['OPENAI_MODEL']
+config = get_config()
 
 app = Flask(__name__)
 
@@ -67,9 +62,9 @@ vision_engine = VisionEngine(config['models']['cloud']['api_key']) if VOICE_VISI
 emotion_detector = EmotionDetector() if EMOTION_AVAILABLE else None
 
 print("=" * 60)
-print("🖤 RIOT AI - PUNK MODE ACTIVATED")
-print("🦇 Raven + 💀 Riot are ready")
-print("🧠 Memory engine online")
+print("🏈 COACH BEAR AI - archive online")
+print("🎩 Houndstooth mode engaged")
+print("📓 Notebook (memory) engine online")
 print("=" * 60)
 
 
@@ -78,18 +73,22 @@ def get_client(model_key='cloud'):
     return OpenAI(base_url=m['base_url'], api_key=m['api_key'])
 
 
-# ── Memory tools Raven/Riot can call themselves ────────────────────────────────
+def get_persona(persona_key: str) -> dict:
+    return config['personas'].get(persona_key, config['personas'][config['settings']['default_persona']])
+
+
+# ── Notebook tools Coach can call himself ───────────────────────────────────
 
 MEMORY_TOOLS = [
     {
         "type": "function",
         "function": {
             "name": "save_memory",
-            "description": "Save something important to long-term memory. Use this when you learn something meaningful about your partner or want to remember something for future conversations.",
+            "description": "Save something worth remembering about the person you're talking to. Use this when you learn something meaningful that should carry into future conversations.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "key": {"type": "string", "description": "Short label for this memory (e.g. 'favorite_band', 'birthday', 'current_project')"},
+                    "key": {"type": "string", "description": "Short label for this memory (e.g. 'position', 'hometown', 'goal')"},
                     "value": {"type": "string", "description": "What to remember"},
                     "category": {
                         "type": "string",
@@ -106,7 +105,7 @@ MEMORY_TOOLS = [
         "type": "function",
         "function": {
             "name": "recall_memories",
-            "description": "Look up what you remember about your partner. Use when you want to check what you know.",
+            "description": "Look up what's in the notebook about the person you're talking to.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -119,7 +118,7 @@ MEMORY_TOOLS = [
         "type": "function",
         "function": {
             "name": "save_fact",
-            "description": "Save a specific fact you learned about your partner.",
+            "description": "Save a specific fact you learned about the person you're talking to.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -134,7 +133,7 @@ MEMORY_TOOLS = [
 
 
 def handle_tool_call(tool_name: str, tool_args: dict) -> str:
-    """Execute a memory tool call from the AI"""
+    """Execute a notebook (memory) tool call from Coach"""
     if tool_name == "save_memory":
         save_memory(
             key=tool_args['key'],
@@ -142,7 +141,7 @@ def handle_tool_call(tool_name: str, tool_args: dict) -> str:
             category=tool_args.get('category', 'general'),
             importance=tool_args.get('importance', 5)
         )
-        print(f"🧠 [MEMORY] Saved: {tool_args['key']} = {tool_args['value'][:50]}")
+        print(f"📓 [NOTEBOOK] Saved: {tool_args['key']} = {tool_args['value'][:50]}")
         return f"Memory saved: {tool_args['key']}"
 
     elif tool_name == "recall_memories":
@@ -161,7 +160,7 @@ def handle_tool_call(tool_name: str, tool_args: dict) -> str:
 
     elif tool_name == "save_fact":
         save_fact(tool_args['category'], tool_args['fact'])
-        print(f"🧠 [MEMORY] Fact saved: [{tool_args['category']}] {tool_args['fact']}")
+        print(f"📓 [NOTEBOOK] Fact saved: [{tool_args['category']}] {tool_args['fact']}")
         return f"Fact saved: {tool_args['fact']}"
 
     return "Unknown tool"
@@ -186,16 +185,15 @@ def chat_stream():
     save_message('user', user_message, persona_key, model_key, emotion)
 
     api_key = config['models']['cloud']['api_key']
-    import threading
     threading.Thread(target=extract_facts_from_message, args=(user_message, api_key), daemon=True).start()
 
     def generate():
-        base_prompt = config['personas'][persona_key]['system_prompt']
+        base_prompt = get_persona(persona_key)['system_prompt']
         memory_ctx = build_memory_context()
         if memory_ctx:
-            system_prompt = base_prompt + f"\n\n{'='*40}\nYOUR MEMORY BANK:\n{memory_ctx}\n{'='*40}\nUse this to personalize your responses."
+            system_prompt = base_prompt + f"\n\n{'='*40}\nCOACH'S NOTEBOOK ON THIS PERSON:\n{memory_ctx}\n{'='*40}\nUse this to personalize your responses."
         else:
-            system_prompt = base_prompt + "\n\nYou have no memories yet - pay attention and remember things about your partner."
+            system_prompt = base_prompt + "\n\nYour notebook is empty so far - pay attention and remember things worth carrying forward."
 
         messages = [{'role': 'system', 'content': system_prompt}]
         for msg in get_recent_messages(20):
@@ -205,8 +203,9 @@ def chat_stream():
             client = get_client(model_key)
             model_cfg = config['models'][model_key]
 
-            # Only use tools with cloud model (local doesn't support tool calling)
-            use_tools = model_key == 'cloud'
+            # Hosted models (OpenAI, OpenRouter) support tool calling; small local
+            # models generally don't, so skip tools there.
+            use_tools = model_key != 'local'
 
             if use_tools:
                 # Non-streaming first pass to handle tool calls
@@ -345,10 +344,10 @@ def voice_transcribe():
 def voice_speak():
     try:
         text = request.json.get('text', '')
-        persona = request.json.get('persona', 'raven')
+        persona_key = request.json.get('persona', config['settings']['default_persona'])
         if not text:
             return jsonify({'success': False, 'error': 'No text'})
-        voice = 'nova' if persona == 'raven' else 'echo'
+        voice = get_persona(persona_key).get('voice', 'onyx')
         client = get_client('cloud')
         response = client.audio.speech.create(model="tts-1", voice=voice, input=text[:500])
         tmp = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
@@ -359,15 +358,19 @@ def voice_speak():
         return jsonify({'success': False, 'error': str(e)})
 
 
-# ── VISION ─────────────────────────────────────────────────────────────────────
+# ── FILM (VISION) ────────────────────────────────────────────────────────────
 
 @app.route('/api/vision/analyze', methods=['POST'])
 def vision_analyze():
+    """Show Coach a photo - the playbook, the film, whatever's on your mind."""
     try:
         if 'image' not in request.files:
             return jsonify({'success': False, 'error': 'No image'})
         file = request.files['image']
-        prompt = request.form.get('prompt', "What's in this image?")
+        prompt = request.form.get(
+            'prompt',
+            "You are Coach Bear Bryant looking at film someone just showed you. React to it in character - short, plainspoken, coach-like."
+        )
         image_path = BASE_DIR / 'temp_image.jpg'
         file.save(image_path)
         client = get_client('cloud')
@@ -379,14 +382,14 @@ def vision_analyze():
                 {"type": "text", "text": prompt},
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}
             ]}],
-            max_tokens=500
+            max_tokens=400
         )
         return jsonify({'success': True, 'analysis': response.choices[0].message.content})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 
-# ── EMOTION ────────────────────────────────────────────────────────────────────
+# ── READ THE ROOM (EMOTION) ─────────────────────────────────────────────────
 
 @app.route('/api/emotion/detect', methods=['POST'])
 def emotion_detect():
@@ -396,11 +399,11 @@ def emotion_detect():
             result = emotion_detector.detect_text_emotion(text)
         else:
             lower = text.lower()
-            if any(w in lower for w in ['happy', 'great', 'awesome', 'sick', 'dope']):
+            if any(w in lower for w in ['happy', 'great', 'awesome', 'pumped', 'fired up']):
                 result = {'success': True, 'emotion': 'happy', 'confidence': 0.7, 'polarity': 0.5}
-            elif any(w in lower for w in ['sad', 'down', 'bummed']):
+            elif any(w in lower for w in ['sad', 'down', 'discouraged']):
                 result = {'success': True, 'emotion': 'sad', 'confidence': 0.7, 'polarity': -0.5}
-            elif any(w in lower for w in ['angry', 'pissed', 'mad']):
+            elif any(w in lower for w in ['angry', 'pissed', 'mad', 'frustrated']):
                 result = {'success': True, 'emotion': 'angry', 'confidence': 0.7, 'polarity': -0.7}
             else:
                 result = {'success': True, 'emotion': 'neutral', 'confidence': 0.6, 'polarity': 0.0}
@@ -409,46 +412,81 @@ def emotion_detect():
         return jsonify({'success': False, 'error': str(e)})
 
 
-# ── N8N MCP ────────────────────────────────────────────────────────────────────
+# ── COACH'S SPORTS TALK (LIVE COLLEGE FOOTBALL) ─────────────────────────────
 
-@app.route('/api/n8n/tools', methods=['GET'])
-def n8n_list_tools():
+@app.route('/api/sports/scoreboard', methods=['GET'])
+def sports_scoreboard():
+    """Live/upcoming/recent college football games, straight from ESPN's public feed."""
+    team = request.args.get('team', '').strip() or None
+    games = get_scoreboard(team=team)
+    return jsonify({'success': True, 'games': games})
+
+
+@app.route('/api/sports/game/<event_id>', methods=['GET'])
+def sports_game(event_id):
+    """Detailed live snapshot for one game (score, situation, recent plays)."""
+    snap = get_game_snapshot(event_id)
+    if not snap:
+        return jsonify({'success': False, 'error': 'Could not load that game'})
+    return jsonify({'success': True, 'game': snap, 'text': snapshot_to_text(snap)})
+
+
+@app.route('/api/sports/talk', methods=['POST'])
+def sports_talk():
+    """
+    Coach goes 'on air': feeds a real, live game snapshot into the persona
+    and gets back a short talk-show / play-by-play reaction grounded in the
+    actual current score and situation.
+    """
+    data = request.json or {}
+    event_id = data.get('event_id')
+    if not event_id:
+        return jsonify({'success': False, 'error': 'No event_id provided'})
+
+    snap = get_game_snapshot(event_id)
+    if not snap:
+        return jsonify({'success': False, 'error': 'Could not load that game right now'})
+
+    game_text = snapshot_to_text(snap)
+    persona_key = data.get('persona', config['settings']['default_persona'])
+    base_prompt = get_persona(persona_key)['system_prompt']
+
+    broadcast_prompt = (
+        base_prompt
+        + "\n\n" + "=" * 40
+        + "\nYOU ARE LIVE ON AIR, hosting a sports-talk segment. Below is REAL, CURRENT data "
+          "for a real college football game pulled just now. React to it in character - call "
+          "the action, give your read on the situation, maybe a prediction. 2-5 sentences, "
+          "energetic, like a radio call. Do not invent plays, players, or numbers beyond what's "
+          "given below.\n\n" + game_text + "\n" + "=" * 40
+    )
+
     try:
-        url = os.environ.get('N8N_MCP_URL', config.get('n8n', {}).get('mcp_server_url', ''))
-        token = os.environ.get('N8N_MCP_TOKEN', config.get('n8n', {}).get('mcp_token', ''))
-        headers = {'Authorization': f"Bearer {token}", 'Content-Type': 'application/json'}
-        resp = requests.post(url, headers=headers,
-                             json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}, timeout=10)
-        return jsonify(resp.json())
+        client = get_client('cloud')
+        model_cfg = config['models']['cloud']
+        response = client.chat.completions.create(
+            model=model_cfg['model'],
+            messages=[{'role': 'system', 'content': broadcast_prompt},
+                      {'role': 'user', 'content': "Give the crowd your call of the game right now."}],
+            temperature=0.9,
+            max_tokens=300,
+        )
+        commentary = response.choices[0].message.content.strip()
+        return jsonify({'success': True, 'commentary': commentary, 'game': snap})
     except Exception as e:
-        return jsonify({'error': str(e)})
+        return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/n8n/call', methods=['POST'])
-def n8n_call_tool():
-    try:
-        data = request.json
-        url = os.environ.get('N8N_MCP_URL', config.get('n8n', {}).get('mcp_server_url', ''))
-        token = os.environ.get('N8N_MCP_TOKEN', config.get('n8n', {}).get('mcp_token', ''))
-        headers = {'Authorization': f"Bearer {token}", 'Content-Type': 'application/json'}
-        resp = requests.post(url, headers=headers,
-                             json={"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-                                   "params": {"name": data.get('tool'), "arguments": data.get('args', {})}}, timeout=30)
-        return jsonify(resp.json())
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-
-# ── TWILIO ─────────────────────────────────────────────────────────────────────
+# ── COACH'S HOTLINE (TWILIO) ────────────────────────────────────────────────
 
 @app.route('/api/twilio/call', methods=['POST'])
 def twilio_call():
-    """Raven calls your phone"""
+    """Coach calls your phone"""
     if not TWILIO_AVAILABLE:
         return jsonify({'success': False, 'error': 'Twilio not installed'})
     data = request.json
     to_number = data.get('to')
-    message = data.get('message', "Hey, it's Raven. Just checking in. Stay punk. 🖤")
+    message = data.get('message', "This is Coach Bryant. Just checking in. Get after it today, hear?")
     if not to_number:
         return jsonify({'success': False, 'error': 'No phone number provided'})
     result = call_user(to_number, message)
@@ -457,7 +495,7 @@ def twilio_call():
 
 @app.route('/api/twilio/sms', methods=['POST'])
 def twilio_sms():
-    """Raven texts your phone"""
+    """Coach texts your phone"""
     if not TWILIO_AVAILABLE:
         return jsonify({'success': False, 'error': 'Twilio not installed'})
     data = request.json
@@ -471,25 +509,23 @@ def twilio_sms():
 
 @app.route('/api/twilio/incoming', methods=['POST'])
 def twilio_incoming():
-    """Webhook - someone calls the Twilio number"""
-    persona = request.args.get('persona', 'raven')
+    """Webhook - someone calls the Twilio number and gets Coach"""
     base_url = request.url_root.rstrip('/')
-    twiml = handle_incoming_call(base_url, persona)
+    twiml = handle_incoming_call(base_url)
     return Response(twiml, mimetype='text/xml')
 
 
 @app.route('/api/twilio/respond', methods=['POST'])
 def twilio_respond():
-    """Webhook - process speech and respond"""
+    """Webhook - process speech and respond as Coach"""
     speech = request.form.get('SpeechResult', '')
-    persona = request.args.get('persona', 'raven')
     base_url = request.url_root.rstrip('/')
     api_key = config['models']['cloud']['api_key']
-    twiml = handle_voice_response(speech, persona, api_key, base_url)
+    twiml = handle_voice_response(speech, api_key, base_url)
     return Response(twiml, mimetype='text/xml')
 
 
 if __name__ == '__main__':
     print("🚀 Starting on http://localhost:5001")
-    print("🖤 Break rules. Build empires. Stay punk. ⚡")
+    print("🏈 Coach Bear AI is up. Bring your notebook. ⚡")
     app.run(host='0.0.0.0', port=5001, debug=False, threaded=True)

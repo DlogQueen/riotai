@@ -1,5 +1,5 @@
 """
-RIOT AI - Memory Engine
+Coach Bear AI - Memory Engine ("Coach's Notebook")
 Uses database.py abstraction (Supabase or SQLite)
 """
 
@@ -29,7 +29,7 @@ def build_memory_context() -> str:
     parts = []
 
     if mem['facts']:
-        parts.append("WHAT YOU KNOW ABOUT YOUR PARTNER:")
+        parts.append("WHAT YOU KNOW ABOUT THIS PERSON:")
         for category, facts in mem['facts'].items():
             parts.append(f"  [{category.upper()}]")
             for fact in facts[:5]:
@@ -56,7 +56,7 @@ def extract_facts_from_message(message: str, api_key: str):
             model="gpt-4o-mini",
             messages=[{
                 "role": "system",
-                "content": """Extract memorable facts about the user from their message.
+                "content": """Extract memorable facts about the speaker from their message.
 Return JSON array: [{"category": "...", "fact": "..."}]
 Categories: identity, preferences, work, relationships, goals, emotions, skills, location, history
 Only extract clear specific facts. Return [] if nothing memorable."""

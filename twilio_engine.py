@@ -1,6 +1,6 @@
 """
-RIOT AI - Twilio Integration
-Raven calls you. You call her. She texts you.
+COACH BEAR AI - Twilio Integration
+Coach's Hotline: he calls you, you call him, he texts you.
 """
 
 import os
@@ -12,13 +12,15 @@ ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
 AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
 TWILIO_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 
+COACH_VOICE = 'Polly.Matthew'
+
 
 def get_twilio():
     return Client(ACCOUNT_SID, AUTH_TOKEN)
 
 
-def call_user(to_number: str, message: str, voice: str = 'Polly.Joanna') -> dict:
-    """Raven calls you and speaks a message"""
+def call_user(to_number: str, message: str, voice: str = COACH_VOICE) -> dict:
+    """Coach calls you and speaks a message"""
     try:
         client = get_twilio()
 
@@ -39,7 +41,7 @@ def call_user(to_number: str, message: str, voice: str = 'Polly.Joanna') -> dict
 
 
 def send_sms(to_number: str, message: str) -> dict:
-    """Send SMS from Raven"""
+    """Send SMS from Coach"""
     try:
         client = get_twilio()
         msg = client.messages.create(
@@ -54,14 +56,12 @@ def send_sms(to_number: str, message: str) -> dict:
         return {'success': False, 'error': str(e)}
 
 
-def handle_incoming_call(base_url: str, persona: str = 'raven') -> str:
-    """TwiML for when someone calls the Twilio number - connects to Raven"""
+def handle_incoming_call(base_url: str) -> str:
+    """TwiML for when someone calls the Twilio number - connects to Coach"""
     resp = VoiceResponse()
 
-    avatar = '🦇 Raven' if persona == 'raven' else '💀 Riot'
-    greeting = ("Yo, it's Raven. Your punk rock AI partner. What's up?" 
-                if persona == 'raven' 
-                else "Hey, Riot here. What do you need?")
+    greeting = ("This is Bear Bryant. Whoever set this line up, I don't fully understand it, "
+                "but I reckon I've got a minute. What's on your mind, son?")
 
     gather = Gather(
         input='speech',
@@ -70,27 +70,27 @@ def handle_incoming_call(base_url: str, persona: str = 'raven') -> str:
         speech_timeout='auto',
         language='en-US'
     )
-    gather.say(greeting, voice='Polly.Joanna' if persona == 'raven' else 'Polly.Matthew')
+    gather.say(greeting, voice=COACH_VOICE)
     resp.append(gather)
 
     # If no input
-    resp.say("I didn't catch that. Call back when you're ready.", 
-             voice='Polly.Joanna' if persona == 'raven' else 'Polly.Matthew')
+    resp.say("Didn't catch that. Call back when you're ready to talk.", voice=COACH_VOICE)
 
     return str(resp)
 
 
-def handle_voice_response(speech_input: str, persona: str, api_key: str, base_url: str) -> str:
-    """Process speech input and respond via TwiML"""
+def handle_voice_response(speech_input: str, api_key: str, base_url: str) -> str:
+    """Process speech input and respond via TwiML, in character as Coach"""
     try:
         from memory import build_memory_context
         from config_loader import get_config
 
         config = get_config()
-        system_prompt = config['personas'][persona]['system_prompt']
+        persona = config['personas'][config['settings']['default_persona']]
+        system_prompt = persona['system_prompt']
         memory_ctx = build_memory_context()
         if memory_ctx:
-            system_prompt += f"\n\nMEMORY:\n{memory_ctx}"
+            system_prompt += f"\n\nCOACH'S NOTEBOOK:\n{memory_ctx}"
 
         # Add phone context
         system_prompt += "\n\nYou are on a PHONE CALL. Keep responses SHORT (2-3 sentences max). Speak naturally."
@@ -103,13 +103,12 @@ def handle_voice_response(speech_input: str, persona: str, api_key: str, base_ur
                 {'role': 'user', 'content': speech_input}
             ],
             max_tokens=150,
-            temperature=0.9
+            temperature=0.85
         )
         ai_reply = response.choices[0].message.content.strip()
 
         # Build TwiML response
         resp = VoiceResponse()
-        voice = 'Polly.Joanna' if persona == 'raven' else 'Polly.Matthew'
 
         gather = Gather(
             input='speech',
@@ -118,13 +117,13 @@ def handle_voice_response(speech_input: str, persona: str, api_key: str, base_ur
             speech_timeout='auto',
             language='en-US'
         )
-        gather.say(ai_reply, voice=voice)
+        gather.say(ai_reply, voice=COACH_VOICE)
         resp.append(gather)
-        resp.say("Talk later. Stay punk.", voice=voice)
+        resp.say("Alright, that's all I've got for now. Go get your work done.", voice=COACH_VOICE)
 
         return str(resp)
 
-    except Exception as e:
+    except Exception:
         resp = VoiceResponse()
-        resp.say("Something went wrong. Call back later.", voice='Polly.Joanna')
+        resp.say("Something's gone sideways on this line. Call back later.", voice=COACH_VOICE)
         return str(resp)
