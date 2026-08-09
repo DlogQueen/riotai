@@ -1,5 +1,5 @@
 """
-RIOT AI - Database Layer
+Coach Bear AI - Database Layer
 Supabase in production, SQLite locally
 """
 
@@ -21,7 +21,7 @@ else:
     _client = None
     print("🗄️  [DB] Using local SQLite")
 
-DB_FILE = Path(__file__).parent / "riot_ai.db"
+DB_FILE = Path(__file__).parent / "coach_bear.db"
 
 
 # ── SQLite fallback init ───────────────────────────────────────────────────────

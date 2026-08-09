@@ -1,4 +1,4 @@
--- RIOT AI - Supabase Schema
+-- Coach Bear AI - Supabase Schema
 -- Run this in your Supabase SQL editor once
 
 create table if not exists chat_history (

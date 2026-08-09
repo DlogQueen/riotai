@@ -1,818 +1,741 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🖤 RIOT AI</title>
-    <link rel="icon" type="image/png" href="/static/logo.png">
-    <link rel="apple-touch-icon" href="/static/logo.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Roboto+Mono:wght@400;700&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Roboto Mono', monospace;
-            background: #000;
-            background-image:
-                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,0,128,0.03) 2px, rgba(255,0,128,0.03) 4px),
-                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,255,159,0.03) 2px, rgba(0,255,159,0.03) 4px);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #fff;
-            overflow: hidden;
-        }
-        .toolbar {
-            background: linear-gradient(135deg, #1a0010 0%, #001a10 100%);
-            padding: 8px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid #ff0080;
-            box-shadow: 0 0 20px rgba(255,0,128,0.5), 0 0 40px rgba(0,255,159,0.3);
-        }
-        .logo {
-            font-family: 'Permanent Marker', cursive;
-            font-size: 26px;
-            background: linear-gradient(135deg, #ff0080 0%, #00ff9f 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: 2px;
-            transform: rotate(-2deg);
-            display: inline-block;
-        }
-        .logo:hover { animation: glitch 0.3s infinite; }
-        @keyframes glitch {
-            0%   { transform: translate(0) rotate(-2deg); }
-            25%  { transform: translate(-2px, 2px) rotate(-2deg); }
-            50%  { transform: translate(2px, -2px) rotate(-2deg); }
-            75%  { transform: translate(-2px, -2px) rotate(-2deg); }
-            100% { transform: translate(0) rotate(-2deg); }
-        }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .toolbar-btn {
-            padding: 9px 16px;
-            background: #000;
-            border: 2px solid #ff0080;
-            color: #ff0080;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-family: 'Roboto Mono', monospace;
-        }
-        .toolbar-btn:hover { background: #ff0080; color: #000; box-shadow: 0 0 15px rgba(255,0,128,0.8); }
-        .toolbar-btn.active { background: linear-gradient(135deg,#ff0080,#00ff9f); border-color: #00ff9f; color: #000; }
-        .toolbar-btn.recording { background: #ff0000; border-color: #ff0000; color: #fff; animation: pulse 0.8s infinite; }
-        .emotion-indicator {
-            padding: 9px 16px; background: #000; border: 2px solid #00ff9f;
-            font-size: 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; text-transform: uppercase;
-        }
-        .emotion-dot { width: 10px; height: 10px; border-radius: 50%; animation: pulse 2s infinite; }
-        .container { flex: 1; display: flex; overflow: hidden; }
-        .sidebar {
-            width: 260px; background: linear-gradient(180deg,#0a0005,#000a05);
-            border-right: 3px solid #ff0080; display: flex; flex-direction: column;
-            transition: width 0.3s; overflow: hidden;
-        }
-        .sidebar.collapsed { width: 0; }
-        .sidebar-section { padding: 18px; border-bottom: 2px solid rgba(255,0,128,0.3); }
-        .sidebar-title { font-size: 12px; color: #ff0080; text-transform: uppercase; font-weight: 700; margin-bottom: 12px; letter-spacing: 2px; }
-        .persona-card {
-            padding: 12px; background: #000; border: 2px solid #ff0080;
-            cursor: pointer; transition: all 0.2s; margin-bottom: 10px;
-        }
-        .persona-card:hover { border-color: #00ff9f; box-shadow: 0 0 15px rgba(0,255,159,0.5); transform: translateX(4px); }
-        .persona-card.active { background: linear-gradient(135deg,#ff0080,#00ff9f); border-color: #00ff9f; color: #000; }
-        .persona-name { font-weight: 700; margin-bottom: 4px; font-size: 15px; }
-        .persona-desc { font-size: 11px; opacity: 0.8; }
-        .chat-container { flex: 1; display: flex; flex-direction: column; background: #000; }
-        .chat-area { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 18px; }
-        .message { display: flex; gap: 12px; animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-15px); } to { opacity: 1; transform: translateX(0); } }
-        .message.user { flex-direction: row-reverse; }
-        .avatar {
-            width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
-            font-size: 26px; flex-shrink: 0; border: 2px solid;
-        }
-        .message.user .avatar { background: linear-gradient(135deg,#ff0080,#00ff9f); border-color: #00ff9f; }
-        .message.assistant .avatar { background: #000; border-color: #ff0080; box-shadow: 0 0 15px rgba(255,0,128,0.4); }
-        .message-content {
-            max-width: 70%; padding: 16px 20px; line-height: 1.7; color: #fff;
-            border: 2px solid; font-size: 14px;
-        }
-        .message.user .message-content { background: rgba(0,255,159,0.1); border-color: #00ff9f; }
-        .message.assistant .message-content { background: rgba(255,0,128,0.08); border-color: #ff0080; }
-        .message-content pre { background: #0a0a0a; padding: 12px; border: 1px solid #ff0080; overflow-x: auto; margin: 10px 0; }
-        .message-content code { font-family: 'Roboto Mono', monospace; font-size: 13px; color: #00ff9f; }
-        .message-content pre code { color: #00ff9f; }
-        .input-area {
-            padding: 20px; background: linear-gradient(135deg,#0a0005,#000a05);
-            border-top: 3px solid #ff0080; display: flex; flex-direction: column; gap: 10px;
-        }
-        .input-tools { display: flex; gap: 8px; flex-wrap: wrap; }
-        .tool-btn {
-            padding: 7px 12px; background: #000; border: 1px solid #ff0080;
-            color: #ff0080; cursor: pointer; font-size: 11px; transition: all 0.2s;
-            font-weight: 700; text-transform: uppercase; font-family: 'Roboto Mono', monospace;
-        }
-        .tool-btn:hover { background: #ff0080; color: #000; }
-        .input-row { display: flex; gap: 10px; }
-        .input-box {
-            flex: 1; padding: 16px 20px; background: #000; border: 2px solid #ff0080;
-            color: #fff; font-size: 14px; resize: none; font-family: 'Roboto Mono', monospace; transition: border-color 0.2s;
-        }
-        .input-box:focus { outline: none; border-color: #00ff9f; box-shadow: 0 0 15px rgba(0,255,159,0.4); }
-        .send-btn {
-            padding: 16px 36px; background: linear-gradient(135deg,#ff0080,#00ff9f);
-            border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer;
-            transition: all 0.2s; text-transform: uppercase; font-family: 'Roboto Mono', monospace; letter-spacing: 2px;
-        }
-        .send-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 25px rgba(255,0,128,0.7); }
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center;
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: #000; border: 3px solid #ff0080; width: 90%; max-width: 900px;
-            max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(255,0,128,0.7);
-        }
-        .modal-header {
-            padding: 18px 22px; border-bottom: 2px solid #ff0080;
-            display: flex; justify-content: space-between; align-items: center;
-            background: linear-gradient(135deg,#0a0005,#000a05);
-        }
-        .modal-body { flex: 1; overflow: hidden; }
-        .CodeMirror { height: 420px; font-size: 14px; }
-        .modal-footer {
-            padding: 18px 22px; border-top: 2px solid #ff0080;
-            display: flex; justify-content: flex-end; gap: 10px;
-            background: linear-gradient(135deg,#0a0005,#000a05);
-        }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#ff0080,#00ff9f); }
-        .tts-btn {
-            background: none; border: none; cursor: pointer; font-size: 14px;
-            opacity: 0.6; transition: opacity 0.2s; padding: 2px 6px;
-        }
-        .tts-btn:hover { opacity: 1; }
-        #voice-status { font-size: 11px; color: #00ff9f; margin-left: 8px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>{{ config.app_name }}</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+<link rel="apple-touch-icon" href="/static/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --crimson:#9E1B32;
+    --crimson-dark:#6E1120;
+    --crimson-deep:#4A0C16;
+    --ink:#141414;
+    --cream:#F4EFE4;
+    --paper:#FBF8F1;
+    --line:#d9cfba;
+    --gold:#C9A55C;
+    --ok:#2e7d46;
+    --live:#c62828;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    color:var(--ink);
+    font-family:'Merriweather', Georgia, serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    background-color:#7a0f22;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg transform='translate(20,20) rotate(-25)' fill='%23ffffff' fill-opacity='0.14'%3E%3Cellipse cx='0' cy='0' rx='19' ry='12'/%3E%3Cg stroke='%237a0f22' stroke-width='1.6'%3E%3Cline x1='-13' y1='0' x2='13' y2='0'/%3E%3Cline x1='-4' y1='-3.4' x2='-4' y2='3.4'/%3E%3Cline x1='0' y1='-3.4' x2='0' y2='3.4'/%3E%3Cline x1='4' y1='-3.4' x2='4' y2='3.4'/%3E%3C/g%3E%3C/g%3E%3Cg transform='translate(80,80) rotate(-25)' fill='%23ffffff' fill-opacity='0.14'%3E%3Cellipse cx='0' cy='0' rx='19' ry='12'/%3E%3Cg stroke='%237a0f22' stroke-width='1.6'%3E%3Cline x1='-13' y1='0' x2='13' y2='0'/%3E%3Cline x1='-4' y1='-3.4' x2='-4' y2='3.4'/%3E%3Cline x1='0' y1='-3.4' x2='0' y2='3.4'/%3E%3Cline x1='4' y1='-3.4' x2='4' y2='3.4'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(ellipse 140% 60% at 50% 45%, #b3223f 0%, #8e1930 35%, #5c0f20 75%, #3d0a16 100%);
+    background-size:120px 120px, cover;
+    background-attachment:fixed, fixed;
+  }
+  h1,h2,h3,.display{
+    font-family:'Oswald', 'Arial Narrow', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+  }
+
+  /* ── Houndstooth utility ─────────────────────────────────────────────── */
+  .hound{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Crect width='4' height='4' fill='%23fff'/%3E%3Cg fill='%23101010'%3E%3Cpolygon points='0,0 2,0 2,2 0,2'/%3E%3Cpolygon points='2,2 4,2 4,4 2,4'/%3E%3Cpolygon points='2,0 4,2 2,2'/%3E%3Cpolygon points='0,2 2,4 2,2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:16px 16px;
+  }
+  .hound-crimson{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Crect width='4' height='4' fill='%23F4EFE4'/%3E%3Cg fill='%239E1B32'%3E%3Cpolygon points='0,0 2,0 2,2 0,2'/%3E%3Cpolygon points='2,2 4,2 4,4 2,4'/%3E%3Cpolygon points='2,0 4,2 2,2'/%3E%3Cpolygon points='0,2 2,4 2,2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:14px 14px;
+  }
+  .hound-strip{ height:10px; }
+
+  /* ── Layout shell ─────────────────────────────────────────────────────── */
+  header.top{
+    background:var(--ink);
+    border-bottom:4px solid var(--crimson);
+  }
+  .top-inner{
+    max-width:1080px; margin:0 auto; padding:14px 20px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .top-inner img{ width:48px; height:48px; flex:0 0 auto; }
+  .brand-text{ flex:1; min-width:0; }
+  .brand-text h1{ color:#fff; font-size:22px; margin:0; line-height:1.1; }
+  .brand-text .tag{ color:var(--gold); font-size:12px; font-family:'Merriweather',serif; font-style:italic; opacity:.9; }
+  .disclaimer-badge{
+    font-size:10px; color:#cbb; opacity:.75; max-width:220px; text-align:right;
+    display:none;
+  }
+  @media(min-width:720px){ .disclaimer-badge{ display:block; } }
+
+  nav.tabs{
+    max-width:1080px; margin:0 auto; padding:0 20px;
+    display:flex; gap:4px; overflow-x:auto;
+  }
+  nav.tabs button{
+    background:transparent; border:none; color:#ddd;
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em;
+    font-size:13px; padding:10px 14px; cursor:pointer; border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  nav.tabs button:hover{ color:#fff; }
+  nav.tabs button.active{ color:#fff; border-bottom-color:var(--crimson); }
+
+  main{
+    flex:1; width:100%; max-width:1080px; margin:0 auto; padding:20px;
+    display:flex; flex-direction:column; gap:16px;
+  }
+
+  .panel{ display:none; flex-direction:column; gap:16px; }
+  .panel.active{ display:flex; }
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:0 2px 6px rgba(0,0,0,.06);
+    overflow:hidden;
+  }
+  .card-header{
+    padding:10px 16px; background:var(--ink); color:#fff;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .card-header h2{ font-size:14px; margin:0; color:#fff; }
+  .card-body{ padding:16px; }
+
+  /* ── Chat ─────────────────────────────────────────────────────────────── */
+  #chat-area{
+    height:56vh; min-height:340px; overflow-y:auto; padding:16px;
+    display:flex; flex-direction:column; gap:12px;
+    background:
+      linear-gradient(var(--paper),var(--paper));
+  }
+  .message{ display:flex; gap:10px; max-width:88%; }
+  .message.user{ align-self:flex-end; flex-direction:row-reverse; }
+  .message .avatar{
+    flex:0 0 auto; width:34px; height:34px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+    background:var(--ink); color:#fff;
+  }
+  .message.user .avatar{ background:var(--crimson); }
+  .message-content{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:10px 13px; font-size:14.5px; line-height:1.5; position:relative;
+  }
+  .message.assistant .message-content{ border-left:4px solid var(--crimson); }
+  .message.user .message-content{ border-right:4px solid var(--ink); background:#fff8ef; }
+  .message-content pre{ background:#1d1d1d; color:#eee; padding:8px 10px; border-radius:4px; overflow-x:auto; font-size:12.5px; }
+  .message-content code{ background:#eee1c8; padding:1px 4px; border-radius:3px; font-size:.9em; }
+  .tts-btn{
+    margin-left:6px; border:none; background:transparent; cursor:pointer; font-size:13px;
+    opacity:.55; vertical-align:middle;
+  }
+  .tts-btn:hover{ opacity:1; }
+
+  .composer{ display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line); background:var(--paper); align-items:flex-end; }
+  .composer textarea{
+    flex:1; resize:none; border:1px solid var(--line); border-radius:6px; padding:10px 12px;
+    font-family:inherit; font-size:14px; max-height:150px; min-height:42px; background:#fff;
+  }
+  .composer textarea:focus{ outline:2px solid var(--crimson); outline-offset:-1px; }
+  .icon-btn, .btn{
+    font-family:'Oswald',sans-serif; letter-spacing:.03em; text-transform:uppercase;
+    border:none; border-radius:6px; padding:10px 14px; cursor:pointer; font-size:13px;
+    background:var(--crimson); color:#fff; transition:transform .05s, background .15s;
+  }
+  .btn.secondary{ background:var(--ink); }
+  .btn.ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .icon-btn:hover, .btn:hover{ background:var(--crimson-dark); }
+  .btn.secondary:hover{ background:#000; }
+  .icon-btn:active, .btn:active{ transform:translateY(1px); }
+  .icon-btn:disabled, .btn:disabled{ opacity:.5; cursor:default; }
+  #voice-btn.recording{ background:var(--live); animation:pulse 1s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.6;} }
+  .status-line{ font-size:11px; color:#8a7f66; padding:0 16px 8px; min-height:14px; }
+  .toolbar{ display:flex; align-items:center; gap:10px; padding:8px 16px; font-size:12px; color:#6b6250; }
+  .toolbar label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
+
+  .toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:9px 16px; border-radius:20px;
+    font-size:12.5px; font-family:'Oswald',sans-serif; letter-spacing:.03em;
+    box-shadow:0 4px 14px rgba(0,0,0,.3); z-index:50; opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+
+  /* ── Sports Talk ──────────────────────────────────────────────────────── */
+  .sports-controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .sports-controls input[type=text]{
+    flex:1; min-width:160px; padding:9px 11px; border:1px solid var(--line); border-radius:6px; font-family:inherit;
+  }
+  .game-list{ display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto; }
+  .game-card{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 12px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer;
+  }
+  .game-card:hover{ border-color:var(--crimson); }
+  .game-card.selected{ border-color:var(--crimson); box-shadow:inset 0 0 0 1px var(--crimson); background:#fff6f2; }
+  .matchup{ font-family:'Oswald',sans-serif; font-size:13.5px; }
+  .matchup .score{ font-weight:700; }
+  .game-meta{ font-size:11px; color:#8a7f66; margin-top:2px; }
+  .pill{
+    font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:.05em; text-transform:uppercase;
+    padding:3px 8px; border-radius:20px; color:#fff; flex:0 0 auto;
+  }
+  .pill.live{ background:var(--live); }
+  .pill.pre{ background:#8a7f66; }
+  .pill.post{ background:var(--ink); }
+
+  #broadcast-feed{ display:flex; flex-direction:column; gap:10px; max-height:340px; overflow-y:auto; }
+  .broadcast-line{
+    border-left:4px solid var(--crimson); background:#fff; border:1px solid var(--line); border-radius:6px;
+    padding:10px 12px; font-size:14px; line-height:1.5;
+  }
+  .broadcast-line .bl-time{ font-size:10px; color:#8a7f66; font-family:'Oswald',sans-serif; letter-spacing:.05em; }
+  #on-air-badge{
+    font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:.06em; padding:4px 10px; border-radius:20px;
+    background:#333; color:#aaa;
+  }
+  #on-air-badge.live{ background:var(--live); color:#fff; }
+
+  /* ── Hotline ──────────────────────────────────────────────────────────── */
+  .field{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+  .field label{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#8a7f66; font-family:'Oswald',sans-serif; }
+  .field input{ padding:10px 12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; }
+  .hotline-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  #hotline-result{ margin-top:12px; font-size:13px; }
+
+  /* ── Notebook ─────────────────────────────────────────────────────────── */
+  .fact-cat{ margin-bottom:14px; }
+  .fact-cat h3{ font-size:12px; color:var(--crimson); margin:0 0 6px; }
+  .fact-cat ul{ margin:0; padding-left:18px; font-size:13.5px; }
+  .empty-note{ color:#8a7f66; font-size:13px; font-style:italic; }
+
+  footer{
+    margin-top:auto; padding:16px 20px 26px; text-align:center;
+    color:#8a7f66; font-size:11.5px; line-height:1.6;
+  }
+  footer a{ color:var(--crimson); }
+
+  ::-webkit-scrollbar{ width:9px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:6px; }
+</style>
 </head>
 <body>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-        <div style="display:flex;gap:16px;align-items:center;">
-            <img src="/static/logo.png" alt="RIOT AI" style="height:54px;width:auto;object-fit:contain;filter:drop-shadow(0 0 8px rgba(255,0,128,0.8));cursor:pointer;" onclick="window.location.reload()" title="RIOT AI">
-            <button class="toolbar-btn" onclick="toggleSidebar()">☰</button>
-            <button class="toolbar-btn" onclick="openCodeEditor()">💻 CODE</button>
-            <button class="toolbar-btn" id="voice-btn" onclick="toggleVoice()">🎤 VOICE</button>
-            <span id="voice-status"></span>
-            <button class="toolbar-btn" onclick="startCamera()">📷 VISION</button>
+<header class="top">
+  <div class="hound-strip hound-crimson"></div>
+  <div class="top-inner">
+    <img src="/static/logo.svg" alt="Coach Bear AI">
+    <div class="brand-text">
+      <h1>{{ config.app_name }}</h1>
+      <div class="tag">{{ config.tagline }}</div>
+    </div>
+    <div class="disclaimer-badge">{{ config.disclaimer }}</div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="chat">💬 Chat</button>
+    <button class="tab-btn" data-tab="sports">🎙️ Sports Talk</button>
+    <button class="tab-btn" data-tab="hotline">☎️ Hotline</button>
+    <button class="tab-btn" data-tab="notebook">📓 Notebook</button>
+  </nav>
+  <div class="hound-strip hound"></div>
+</header>
+
+<main>
+
+  <!-- ══ CHAT ══ -->
+  <section class="panel active" id="panel-chat">
+    <div class="card">
+      <div class="card-header">
+        <h2>Talking with Coach Bryant</h2>
+        <button class="btn ghost" style="padding:5px 10px;font-size:11px;color:#fff;border-color:#555;" onclick="clearHistory()">Clear</button>
+      </div>
+      <div id="chat-area"></div>
+      <div class="toolbar">
+        <label><input type="checkbox" id="auto-speak" checked> 🔊 Coach reads his replies aloud</label>
+      </div>
+      <div class="status-line" id="voice-status"></div>
+      <div class="composer">
+        <button class="icon-btn" id="voice-btn" onclick="toggleRecording()" title="Talk to Coach">🎤</button>
+        <textarea id="message-input" placeholder="Say something to Coach..." rows="1"
+          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,150)+'px';"></textarea>
+        <button class="btn" id="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SPORTS TALK ══ -->
+  <section class="panel" id="panel-sports">
+    <div class="card">
+      <div class="card-header"><h2>Live College Football</h2></div>
+      <div class="card-body">
+        <p style="margin-top:0;font-size:12.5px;color:#6b6250;">
+          Real scores pulled live, right now, from ESPN's public scoreboard feed. Pick a game and
+          Coach will call it like he's on the air.
+        </p>
+        <div class="sports-controls">
+          <input type="text" id="team-filter" placeholder="Filter by team (e.g. Alabama) - optional">
+          <button class="btn" onclick="loadGames()">Find Games</button>
         </div>
-        <div style="display:flex;gap:12px;align-items:center;">
-            <div class="emotion-indicator">
-                <div class="emotion-dot" id="emotion-dot" style="background:#00ff9f;"></div>
-                <span id="emotion-text">NEUTRAL</span>
-            </div>
-            <select class="toolbar-btn" id="model-select" style="padding:9px 12px;">
-                <option value="cloud">☁️ GPT-4O</option>
-                <option value="local">💻 TINYLLAMA</option>
-            </select>
-        </div>
+        <div style="height:10px;"></div>
+        <div class="game-list" id="game-list"><p class="empty-note">Click "Find Games" to pull today's slate.</p></div>
+      </div>
     </div>
 
-    <!-- Main -->
-    <div class="container">
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-section">
-                <div class="sidebar-title">🖤 YOUR CREW</div>
-                <div class="persona-card active" data-persona="raven">
-                    <div class="persona-name">🦇 RAVEN</div>
-                    <div class="persona-desc">Sassy punk rock queen</div>
-                </div>
-                <div class="persona-card" data-persona="riot">
-                    <div class="persona-name">💀 RIOT</div>
-                    <div class="persona-desc">Emo skater rebel</div>
-                </div>
-            </div>
-            <div class="sidebar-section">
-                <div class="sidebar-title">⚡ QUICK ACTIONS</div>
-                <button class="toolbar-btn" style="width:100%;margin-bottom:8px;" onclick="clearHistory()">🗑️ CLEAR CHAT</button>
-                <button class="toolbar-btn" style="width:100%;margin-bottom:8px;" onclick="exportChat()">💾 EXPORT</button>
-                <button class="toolbar-btn" style="width:100%;" onclick="loadHistory()">📜 LOAD HISTORY</button>
-            </div>
-            <div class="sidebar-section">
-                <div class="sidebar-title">🧠 MEMORY</div>
-                <button class="toolbar-btn" style="width:100%;margin-bottom:8px;" onclick="showMemory()">👁️ VIEW ALL</button>
-                <div id="memory-preview" style="font-size:10px;color:#aaa;line-height:1.6;max-height:120px;overflow-y:auto;"></div>
-            </div>
-            <div class="sidebar-section">
-                <div class="sidebar-title">📞 TWILIO</div>
-                <input id="call-number" type="tel" placeholder="+1234567890"
-                    style="width:100%;padding:8px;background:#000;border:1px solid #ff0080;color:#fff;font-family:'Roboto Mono',monospace;font-size:11px;margin-bottom:8px;">
-                <button class="toolbar-btn" style="width:100%;margin-bottom:8px;" onclick="ravenCall()">📞 RAVEN CALLS YOU</button>
-                <button class="toolbar-btn" style="width:100%;border-color:#00ff9f;color:#00ff9f;" onclick="ravenText()">💬 RAVEN TEXTS YOU</button>
-            </div>
-            <div class="sidebar-section">
-                <div class="sidebar-title">🔌 N8N STATUS</div>
-                <button class="toolbar-btn" style="width:100%;" onclick="checkN8n()">⚡ CHECK TOOLS</button>
-                <div id="n8n-status" style="font-size:11px;color:#00ff9f;margin-top:8px;"></div>
-            </div>
+    <div class="card">
+      <div class="card-header">
+        <h2>On the Air</h2>
+        <span id="on-air-badge">OFF AIR</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="btn" id="go-live-btn" onclick="getCoachTake()" disabled>🎙️ Get Coach's Take</button>
+          <button class="btn secondary" id="on-air-toggle" onclick="toggleOnAir()" disabled>▶ Go On Air (auto-updates)</button>
         </div>
-
-        <div class="chat-container">
-            <div class="chat-area" id="chat-area">
-                <div class="message assistant">
-                    <div class="avatar">🦇</div>
-                    <div class="message-content">
-                        Yo! I'm Raven, your punk rock AI partner. Ready to break some rules and build something sick? Let's fucking go! 🖤⚡
-                        <button class="tts-btn" onclick="speakText(this)" data-text="Yo! I'm Raven, your punk rock AI partner. Ready to break some rules and build something sick? Let's fucking go!">🔊</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="input-area">
-                <div class="input-tools">
-                    <button class="tool-btn" onclick="insertCode()">📝 CODE</button>
-                    <button class="tool-btn" onclick="insertEmoji()">🖤 EMOJI</button>
-                    <label class="tool-btn" style="cursor:pointer;">
-                        📎 FILE <input type="file" id="file-input" style="display:none;" onchange="attachFile(this)">
-                    </label>
-                    <button class="tool-btn" onclick="uploadImage()">🖼️ IMAGE</button>
-                </div>
-                <div class="input-row">
-                    <textarea class="input-box" id="message-input"
-                        placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
-                        rows="1"></textarea>
-                    <button class="send-btn" id="send-btn" onclick="sendMessage()">SEND ⚡</button>
-                </div>
-            </div>
-        </div>
+        <div id="broadcast-feed"><p class="empty-note">Pick a game above, then get Coach's take on it.</p></div>
+      </div>
     </div>
+  </section>
 
-    <!-- Code Editor Modal -->
-    <div class="modal" id="code-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="font-family:'Permanent Marker',cursive;color:#ff0080;">💻 CODE EDITOR</h3>
-                <button class="toolbar-btn" onclick="closeCodeEditor()">✕ CLOSE</button>
-            </div>
-            <div class="modal-body">
-                <textarea id="code-editor"></textarea>
-            </div>
-            <div class="modal-footer">
-                <select id="code-language" class="toolbar-btn">
-                    <option value="python">PYTHON</option>
-                    <option value="javascript">JAVASCRIPT</option>
-                </select>
-                <button class="toolbar-btn" onclick="insertCodeToChat()">📤 INSERT TO CHAT</button>
-                <button class="toolbar-btn" onclick="runCode()">▶️ RUN</button>
-            </div>
+  <!-- ══ HOTLINE ══ -->
+  <section class="panel" id="panel-hotline">
+    <div class="card">
+      <div class="card-header"><h2>Coach's Hotline</h2></div>
+      <div class="card-body">
+        <p style="margin-top:0;font-size:12.5px;color:#6b6250;">
+          Have Coach call your phone, or send you a text. Requires the app owner to have set up
+          Twilio - if it's not configured you'll just get a friendly error.
+        </p>
+        <div class="field">
+          <label>Your Phone Number</label>
+          <input type="tel" id="phone-number" placeholder="+1 205 555 0100">
         </div>
-    </div>
-
-    <!-- Hidden image upload -->
-    <input type="file" id="image-input" accept="image/*" style="display:none;" onchange="analyzeImage(this)">
-
-    <!-- Memory Modal -->
-    <div class="modal" id="memory-modal">
-        <div class="modal-content" style="max-width:700px;">
-            <div class="modal-header">
-                <h3 style="font-family:'Permanent Marker',cursive;color:#ff0080;">🧠 MEMORY BANK</h3>
-                <button class="toolbar-btn" onclick="document.getElementById('memory-modal').classList.remove('active')">✕ CLOSE</button>
-            </div>
-            <div class="modal-body" style="padding:20px;overflow-y:auto;max-height:500px;" id="memory-content">
-                <p style="color:#aaa;">Loading...</p>
-            </div>
+        <div class="field">
+          <label>Message (optional - defaults to a pep talk)</label>
+          <input type="text" id="hotline-message" placeholder="What should Coach say?">
         </div>
-    </div>
-
-    <!-- Memory saved toast -->
-    <div id="memory-toast" style="
-        position:fixed;bottom:30px;right:30px;
-        background:linear-gradient(135deg,#ff0080,#00ff9f);
-        color:#000;padding:12px 20px;font-weight:700;font-size:13px;
-        font-family:'Roboto Mono',monospace;
-        display:none;z-index:9999;
-        box-shadow:0 0 20px rgba(255,0,128,0.8);
-        animation:slideInRight 0.3s ease;
-    ">🧠 MEMORY SAVED</div>
-
-    <!-- Camera Modal -->
-    <div class="modal" id="camera-modal">
-        <div class="modal-content" style="max-width:640px;">
-            <div class="modal-header">
-                <h3 style="font-family:'Permanent Marker',cursive;color:#ff0080;">📷 CAMERA</h3>
-                <button class="toolbar-btn" onclick="closeCamera()">✕ CLOSE</button>
-            </div>
-            <div class="modal-body" style="background:#000;display:flex;align-items:center;justify-content:center;padding:10px;">
-                <video id="camera-preview" autoplay playsinline
-                    style="width:100%;max-height:400px;border:2px solid #ff0080;display:block;"></video>
-            </div>
-            <div class="modal-footer">
-                <button class="toolbar-btn" onclick="closeCamera()">✕ CANCEL</button>
-                <button class="send-btn" style="padding:12px 28px;" onclick="captureAndAnalyze()">📸 SNAP + ANALYZE</button>
-            </div>
+        <div class="hotline-actions">
+          <button class="btn" onclick="hotlineCall()">📞 Call Me</button>
+          <button class="btn secondary" onclick="hotlineText()">💬 Text Me</button>
         </div>
+        <div id="hotline-result"></div>
+      </div>
     </div>
+  </section>
 
+  <!-- ══ NOTEBOOK ══ -->
+  <section class="panel" id="panel-notebook">
+    <div class="card">
+      <div class="card-header">
+        <h2>Coach's Notebook</h2>
+        <button class="btn ghost" style="padding:5px 10px;font-size:11px;color:#fff;border-color:#555;" onclick="loadNotebook()">Refresh</button>
+      </div>
+      <div class="card-body" id="notebook-body">
+        <p class="empty-note">Nothing saved yet - chat with Coach a bit and he'll start remembering things.</p>
+      </div>
+    </div>
+  </section>
 
-    <script>
-        let currentPersona = 'raven';
-        let currentModel = 'cloud';
-        let codeEditor = null;
-        let currentEmotion = 'neutral';
+</main>
 
-        // ── Voice Recording (MediaRecorder → Whisper) ──────────────────────
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let isRecording = false;
+<footer>
+  {{ config.disclaimer }}<br>
+  Built for fun as a fan tribute. Sports data via ESPN's public scoreboard feed.
+</footer>
 
-        async function toggleVoice() {
-            if (isRecording) {
-                stopRecording();
-            } else {
-                await startRecording();
+<div class="toast" id="toast"></div>
+
+<script>
+  const DEFAULT_PERSONA = "{{ config.settings.default_persona }}";
+  const DEFAULT_MODEL = "{{ config.settings.default_model }}";
+
+  // ── Tabs ────────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'notebook') loadNotebook();
+    });
+  });
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ── Chat ────────────────────────────────────────────────────────────────
+  const ttsTextMap = {};
+  let ttsCounter = 0;
+
+  function ttsButton(text) {
+    const id = 'tts_' + (ttsCounter++);
+    ttsTextMap[id] = text.replace(/```[\s\S]*?```/g, '').replace(/<[^>]+>/g, '').trim().slice(0, 500);
+    return `<button class="tts-btn" onclick="speakById('${id}', this)">🔊</button>`;
+  }
+
+  function formatMessage(content) {
+    content = escapeHtml(content);
+    content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${code}</code></pre>`);
+    content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
+    content = content.replace(/\n/g, '<br>');
+    return content;
+  }
+
+  function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+  }
+
+  function addMessage(role, content) {
+    const chatArea = document.getElementById('chat-area');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    const avatar = role === 'user' ? '🙋' : '🏈';
+    const tts = role === 'assistant' ? ttsButton(content) : '';
+    div.innerHTML = `<div class="avatar">${avatar}</div>
+      <div class="message-content">${formatMessage(content)}${tts}</div>`;
+    chatArea.appendChild(div);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    return div;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    addMessage('user', message);
+    input.value = '';
+    input.style.height = 'auto';
+
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = '...';
+
+    try {
+      const resp = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, persona: DEFAULT_PERSONA, model: DEFAULT_MODEL })
+      });
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage = '';
+      let messageEl = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const lines = decoder.decode(value).split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.content) {
+              assistantMessage += data.content;
+              if (!messageEl) {
+                messageEl = addMessage('assistant', assistantMessage);
+              } else {
+                messageEl.querySelector('.message-content').innerHTML =
+                  formatMessage(assistantMessage) + ttsButton(assistantMessage);
+              }
+              document.getElementById('chat-area').scrollTop = document.getElementById('chat-area').scrollHeight;
             }
-        }
-
-        async function startRecording() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioChunks = [];
-                mediaRecorder = new MediaRecorder(stream);
-
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = async () => {
-                    stream.getTracks().forEach(t => t.stop());
-                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    await transcribeAudio(blob);
-                };
-
-                mediaRecorder.start();
-                isRecording = true;
-                document.getElementById('voice-btn').classList.add('recording');
-                document.getElementById('voice-btn').textContent = '⏹ STOP';
-                document.getElementById('voice-status').textContent = '● REC';
-            } catch (err) {
-                alert('Mic access denied: ' + err.message);
+            if (data.memory_saved) {
+              showToast('📓 Coach jotted that down: ' + data.key);
             }
-        }
-
-        function stopRecording() {
-            if (mediaRecorder && isRecording) {
-                mediaRecorder.stop();
-                isRecording = false;
-                document.getElementById('voice-btn').classList.remove('recording');
-                document.getElementById('voice-btn').textContent = '🎤 VOICE';
-                document.getElementById('voice-status').textContent = '⏳ transcribing...';
+            if (data.error) {
+              addMessage('assistant', '⚠️ ' + data.error);
             }
-        }
-
-        async function transcribeAudio(blob) {
-            try {
-                const formData = new FormData();
-                formData.append('audio', blob, 'recording.webm');
-
-                const resp = await fetch('/api/voice/transcribe', { method: 'POST', body: formData });
-                const data = await resp.json();
-
-                document.getElementById('voice-status').textContent = '';
-
-                if (data.success && data.text) {
-                    document.getElementById('message-input').value = data.text;
-                    document.getElementById('message-input').style.height = 'auto';
-                    document.getElementById('message-input').style.height =
-                        Math.min(document.getElementById('message-input').scrollHeight, 150) + 'px';
-                } else {
-                    alert('Transcription failed: ' + (data.error || 'unknown'));
-                }
-            } catch (err) {
-                document.getElementById('voice-status').textContent = '';
-                alert('Transcription error: ' + err.message);
+            if (data.done && assistantMessage && document.getElementById('auto-speak').checked) {
+              autoSpeak(assistantMessage);
             }
+          } catch (_) {}
         }
+      }
+    } catch (err) {
+      addMessage('assistant', '⚠️ Error reaching the archive: ' + err.message);
+    }
 
-        // ── TTS ─────────────────────────────────────────────────────────────
-        async function speakText(btn) {
-            // Use data-text attribute - set when button is created
-            const text = btn.dataset.text;
-            if (!text || !text.trim()) return;
-            try {
-                btn.textContent = '⏳';
-                btn.disabled = true;
-                const resp = await fetch('/api/voice/speak', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text.trim().slice(0, 500), persona: currentPersona })
-                });
-                if (!resp.ok) {
-                    const err = await resp.json().catch(() => ({}));
-                    console.error('TTS failed:', err);
-                    btn.textContent = '🔊';
-                    btn.disabled = false;
-                    return;
-                }
-                const audioBlob = await resp.blob();
-                const url = URL.createObjectURL(audioBlob);
-                const audio = new Audio(url);
-                audio.onended = () => {
-                    btn.textContent = '🔊';
-                    btn.disabled = false;
-                    URL.revokeObjectURL(url);
-                };
-                audio.onerror = (e) => {
-                    console.error('Audio playback error:', e);
-                    btn.textContent = '🔊';
-                    btn.disabled = false;
-                };
-                await audio.play();
-            } catch (err) {
-                btn.textContent = '🔊';
-                btn.disabled = false;
-                console.error('TTS error:', err);
-            }
-        }
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send';
+  }
 
-        // ── Camera / Vision (browser getUserMedia - no opencv needed) ────────
-        let cameraStream = null;
+  async function autoSpeak(text) {
+    try {
+      const clean = text.replace(/```[\s\S]*?```/g, '').trim().slice(0, 500);
+      const resp = await fetch('/api/voice/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean, persona: DEFAULT_PERSONA })
+      });
+      if (!resp.ok) return;
+      const blob = await resp.blob();
+      new Audio(URL.createObjectURL(blob)).play().catch(() => {});
+    } catch (_) {}
+  }
 
-        async function startCamera() {
-            // Show camera modal
-            document.getElementById('camera-modal').classList.add('active');
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                document.getElementById('camera-preview').srcObject = cameraStream;
-            } catch (err) {
-                document.getElementById('camera-modal').classList.remove('active');
-                addMessage('assistant', '📷 Camera access denied: ' + err.message);
-            }
-        }
+  async function speakById(id, btn) {
+    const text = ttsTextMap[id];
+    if (!text) return;
+    try {
+      btn.textContent = '⏳'; btn.disabled = true;
+      const resp = await fetch('/api/voice/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, persona: DEFAULT_PERSONA })
+      });
+      if (!resp.ok) { btn.textContent = '🔊'; btn.disabled = false; return; }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => { btn.textContent = '🔊'; btn.disabled = false; URL.revokeObjectURL(url); };
+      audio.onerror = () => { btn.textContent = '🔊'; btn.disabled = false; };
+      await audio.play();
+    } catch (_) {
+      btn.textContent = '🔊'; btn.disabled = false;
+    }
+  }
 
-        function closeCamera() {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(t => t.stop());
-                cameraStream = null;
-            }
-            document.getElementById('camera-modal').classList.remove('active');
-        }
+  async function loadHistory() {
+    try {
+      const resp = await fetch('/api/history');
+      const history = await resp.json();
+      const chatArea = document.getElementById('chat-area');
+      chatArea.innerHTML = '';
+      if (!history.length) {
+        addMessage('assistant', {{ config.personas[config.settings.default_persona].greeting | tojson }});
+        return;
+      }
+      history.forEach(msg => addMessage(msg.role, msg.content));
+    } catch (_) {
+      addMessage('assistant', {{ config.personas[config.settings.default_persona].greeting | tojson }});
+    }
+  }
 
-        async function captureAndAnalyze() {
-            const video = document.getElementById('camera-preview');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
+  async function clearHistory() {
+    if (!confirm('Clear all chat history?')) return;
+    await fetch('/api/history/clear', { method: 'POST' });
+    document.getElementById('chat-area').innerHTML = '';
+    addMessage('assistant', {{ config.personas[config.settings.default_persona].greeting | tojson }});
+  }
 
-            closeCamera();
+  // ── Voice input ────────────────────────────────────────────────────────
+  let mediaRecorder, audioChunks = [], isRecording = false;
 
-            canvas.toBlob(async (blob) => {
-                addMessage('user', '📷 [Camera snapshot]');
-                const formData = new FormData();
-                formData.append('image', blob, 'snapshot.jpg');
-                formData.append('prompt', 'Describe what you see with punk rock energy and attitude.');
-                try {
-                    const resp = await fetch('/api/vision/analyze', { method: 'POST', body: formData });
-                    const data = await resp.json();
-                    addMessage('assistant', data.success ? '👁️ ' + data.analysis : '❌ ' + data.error);
-                } catch (err) {
-                    addMessage('assistant', '❌ ' + err.message);
-                }
-            }, 'image/jpeg', 0.9);
-        }
+  async function toggleRecording() {
+    if (isRecording) { stopRecording(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        await transcribeAudio(blob);
+      };
+      mediaRecorder.start();
+      isRecording = true;
+      document.getElementById('voice-btn').classList.add('recording');
+      document.getElementById('voice-btn').textContent = '⏹';
+      document.getElementById('voice-status').textContent = '● Recording... click again to stop';
+    } catch (err) {
+      alert('Could not access microphone: ' + err.message);
+    }
+  }
 
-        function uploadImage() {
-            document.getElementById('image-input').click();
-        }
+  function stopRecording() {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      isRecording = false;
+      document.getElementById('voice-btn').classList.remove('recording');
+      document.getElementById('voice-btn').textContent = '🎤';
+      document.getElementById('voice-status').textContent = '⏳ Transcribing...';
+    }
+  }
 
-        async function analyzeImage(input) {
-            if (!input.files[0]) return;
-            const formData = new FormData();
-            formData.append('image', input.files[0]);
-            formData.append('prompt', 'Describe this image with punk rock energy and attitude.');
-            addMessage('user', '🖼️ [Image uploaded]');
-            try {
-                const resp = await fetch('/api/vision/analyze', { method: 'POST', body: formData });
-                const data = await resp.json();
-                addMessage('assistant', data.success ? '👁️ ' + data.analysis : '❌ ' + data.error);
-            } catch (err) {
-                addMessage('assistant', '❌ ' + err.message);
-            }
-            input.value = '';
-        }
+  async function transcribeAudio(blob) {
+    try {
+      const formData = new FormData();
+      formData.append('audio', blob, 'recording.webm');
+      const resp = await fetch('/api/voice/transcribe', { method: 'POST', body: formData });
+      const data = await resp.json();
+      document.getElementById('voice-status').textContent = '';
+      if (data.success && data.text) {
+        const input = document.getElementById('message-input');
+        input.value = data.text;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+      } else {
+        document.getElementById('voice-status').textContent = '⚠️ ' + (data.error || 'Could not transcribe');
+      }
+    } catch (err) {
+      document.getElementById('voice-status').textContent = '⚠️ ' + err.message;
+    }
+  }
 
-        // ── Emotion ─────────────────────────────────────────────────────────
-        function updateEmotion(emotion) {
-            currentEmotion = emotion;
-            const colors = { happy:'#00ff9f', sad:'#0080ff', angry:'#ff0000', neutral:'#00ff9f', excited:'#ff0080', anxious:'#ffaa00' };
-            const labels = { happy:'HAPPY 😊', sad:'SAD 😢', angry:'ANGRY 😠', neutral:'NEUTRAL 😐', excited:'EXCITED 🎉', anxious:'ANXIOUS 😬' };
-            document.getElementById('emotion-dot').style.background = colors[emotion] || '#00ff9f';
-            document.getElementById('emotion-text').textContent = labels[emotion] || 'NEUTRAL';
-        }
+  // ── Sports Talk ─────────────────────────────────────────────────────────
+  let games = [];
+  let selectedGameId = null;
+  let onAir = false;
+  let onAirTimer = null;
 
-        function detectTextEmotion(text) {
-            const lower = text.toLowerCase();
-            if (/happy|great|awesome|sick|dope|rad|love|stoked/.test(lower)) updateEmotion('happy');
-            else if (/sad|depressed|down|bummed|crying/.test(lower)) updateEmotion('sad');
-            else if (/angry|pissed|mad|furious/.test(lower)) updateEmotion('angry');
-            else if (/excited|pumped|hyped|omg/.test(lower)) updateEmotion('excited');
-            else if (/worried|anxious|nervous|stressed/.test(lower)) updateEmotion('anxious');
-            else updateEmotion('neutral');
-        }
+  async function loadGames() {
+    const team = document.getElementById('team-filter').value.trim();
+    const list = document.getElementById('game-list');
+    list.innerHTML = '<p class="empty-note">Loading...</p>';
+    try {
+      const url = '/api/sports/scoreboard' + (team ? '?team=' + encodeURIComponent(team) : '');
+      const resp = await fetch(url);
+      const data = await resp.json();
+      games = data.games || [];
+      if (!games.length) {
+        list.innerHTML = '<p class="empty-note">No games found. Try clearing the filter, or check back closer to kickoff.</p>';
+        return;
+      }
+      list.innerHTML = '';
+      games.forEach(g => list.appendChild(renderGameCard(g)));
+    } catch (err) {
+      list.innerHTML = '<p class="empty-note">⚠️ Could not load games: ' + err.message + '</p>';
+    }
+  }
 
-        // ── Twilio ────────────────────────────────────────────────────────────
-        async function ravenCall() {
-            const number = document.getElementById('call-number').value.trim();
-            if (!number) { alert('Enter your phone number first'); return; }
-            const lastMsg = [...document.querySelectorAll('.message.assistant')].pop();
-            const message = lastMsg ? lastMsg.querySelector('.message-content').innerText.replace('🔊','').trim().slice(0,200) : "Hey, it's Raven. Just checking in. Stay punk. 🖤";
-            try {
-                const resp = await fetch('/api/twilio/call', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ to: number, message })
-                });
-                const data = await resp.json();
-                addMessage('assistant', data.success ? `📞 Calling you at ${number}... pick up! 🖤` : `❌ Call failed: ${data.error}`);
-            } catch(e) { addMessage('assistant', '❌ ' + e.message); }
-        }
+  function renderGameCard(g) {
+    const div = document.createElement('div');
+    div.className = 'game-card';
+    div.dataset.id = g.id;
+    const [away, home] = g.competitors && g.competitors.length === 2 ? g.competitors : [{}, {}];
+    div.innerHTML = `
+      <div class="matchup">
+        <div>${away.name || '?'} <span class="score">${away.score ?? ''}</span> @ <span class="score">${home.score ?? ''}</span> ${home.name || '?'}</div>
+        <div class="game-meta">${g.detail || ''}${g.venue ? ' · ' + g.venue : ''}</div>
+      </div>
+      <span class="pill ${g.state}">${g.state === 'in' ? 'LIVE' : g.state === 'post' ? 'FINAL' : 'UPCOMING'}</span>
+    `;
+    div.addEventListener('click', () => selectGame(g.id));
+    return div;
+  }
 
-        async function ravenText() {
-            const number = document.getElementById('call-number').value.trim();
-            if (!number) { alert('Enter your phone number first'); return; }
-            const lastMsg = [...document.querySelectorAll('.message.assistant')].pop();
-            const message = lastMsg ? lastMsg.querySelector('.message-content').innerText.replace('🔊','').trim().slice(0,160) : "Hey it's Raven 🖤⚡ Stay punk.";
-            try {
-                const resp = await fetch('/api/twilio/sms', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ to: number, message })
-                });
-                const data = await resp.json();
-                addMessage('assistant', data.success ? `💬 Text sent to ${number} 🖤` : `❌ SMS failed: ${data.error}`);
-            } catch(e) { addMessage('assistant', '❌ ' + e.message); }
-        }
-        async function checkN8n() {
-            document.getElementById('n8n-status').textContent = 'Connecting...';
-            try {
-                const resp = await fetch('/api/n8n/tools');
-                const data = await resp.json();
-                const tools = data.result?.tools || [];
-                document.getElementById('n8n-status').textContent =
-                    tools.length ? `✅ ${tools.length} tools available` : '⚠️ Connected (no tools listed)';
-            } catch (err) {
-                document.getElementById('n8n-status').textContent = '❌ ' + err.message;
-            }
-        }
+  function selectGame(id) {
+    selectedGameId = id;
+    document.querySelectorAll('.game-card').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
+    document.getElementById('go-live-btn').disabled = false;
+    document.getElementById('on-air-toggle').disabled = false;
+  }
 
-        // ── Chat ─────────────────────────────────────────────────────────────
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const message = input.value.trim();
-            if (!message) return;
+  async function getCoachTake() {
+    if (!selectedGameId) return;
+    const btn = document.getElementById('go-live-btn');
+    btn.disabled = true;
+    btn.textContent = '🎙️ Coach is talking...';
+    try {
+      const resp = await fetch('/api/sports/talk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: selectedGameId, persona: DEFAULT_PERSONA })
+      });
+      const data = await resp.json();
+      addBroadcastLine(data.success ? data.commentary : ('⚠️ ' + data.error));
+    } catch (err) {
+      addBroadcastLine('⚠️ ' + err.message);
+    }
+    btn.disabled = false;
+    btn.textContent = "🎙️ Get Coach's Take";
+  }
 
-            detectTextEmotion(message);
-            addMessage('user', message);
-            input.value = '';
-            input.style.height = 'auto';
+  function addBroadcastLine(text) {
+    const feed = document.getElementById('broadcast-feed');
+    if (feed.querySelector('.empty-note')) feed.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'broadcast-line';
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    div.innerHTML = `<div class="bl-time">${time}</div>${formatMessage(text)}`;
+    feed.prepend(div);
+  }
 
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.disabled = true;
-            sendBtn.textContent = '...';
+  function toggleOnAir() {
+    onAir = !onAir;
+    const badge = document.getElementById('on-air-badge');
+    const toggleBtn = document.getElementById('on-air-toggle');
+    if (onAir) {
+      badge.textContent = 'ON AIR';
+      badge.classList.add('live');
+      toggleBtn.textContent = '■ Go Off Air';
+      getCoachTake();
+      onAirTimer = setInterval(getCoachTake, 25000);
+    } else {
+      badge.textContent = 'OFF AIR';
+      badge.classList.remove('live');
+      toggleBtn.textContent = '▶ Go On Air (auto-updates)';
+      clearInterval(onAirTimer);
+    }
+  }
 
-            try {
-                const resp = await fetch('/api/chat/stream', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message, persona: currentPersona, model: currentModel, emotion: currentEmotion })
-                });
+  // ── Hotline ─────────────────────────────────────────────────────────────
+  async function hotlineCall() {
+    await hotlineAction('/api/twilio/call', '📞 Calling now...');
+  }
+  async function hotlineText() {
+    await hotlineAction('/api/twilio/sms', '💬 Sending text...');
+  }
+  async function hotlineAction(url, pendingMsg) {
+    const to = document.getElementById('phone-number').value.trim();
+    const message = document.getElementById('hotline-message').value.trim();
+    const result = document.getElementById('hotline-result');
+    if (!to) { result.textContent = 'Enter a phone number first.'; return; }
+    result.textContent = pendingMsg;
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, message: message || undefined })
+      });
+      const data = await resp.json();
+      result.textContent = data.success ? '✅ Done - check your phone.' : '⚠️ ' + (data.error || 'Something went wrong.');
+    } catch (err) {
+      result.textContent = '⚠️ ' + err.message;
+    }
+  }
 
-                const reader = resp.body.getReader();
-                const decoder = new TextDecoder();
-                let assistantMessage = '';
-                let messageEl = null;
+  // ── Notebook ────────────────────────────────────────────────────────────
+  async function loadNotebook() {
+    const body = document.getElementById('notebook-body');
+    try {
+      const resp = await fetch('/api/memory');
+      const mem = await resp.json();
+      const catCount = Object.keys(mem.facts || {}).length + (mem.named || []).length;
+      if (!catCount) {
+        body.innerHTML = '<p class="empty-note">Nothing saved yet - chat with Coach a bit and he will start remembering things.</p>';
+        return;
+      }
+      let html = '';
+      for (const [cat, facts] of Object.entries(mem.facts || {})) {
+        html += `<div class="fact-cat"><h3>${escapeHtml(cat)}</h3><ul>${facts.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul></div>`;
+      }
+      if ((mem.named || []).length) {
+        html += `<div class="fact-cat"><h3>Notes</h3><ul>${mem.named.map(m => `<li><strong>${escapeHtml(m.key)}:</strong> ${escapeHtml(m.value)}</li>`).join('')}</ul></div>`;
+      }
+      body.innerHTML = html;
+    } catch (err) {
+      body.innerHTML = '<p class="empty-note">⚠️ Could not load the notebook.</p>';
+    }
+  }
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    const lines = decoder.decode(value).split('\n');
-                    for (const line of lines) {
-                        if (!line.startsWith('data: ')) continue;
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            if (data.content) {
-                                assistantMessage += data.content;
-                                if (!messageEl) {
-                                    messageEl = addMessage('assistant', assistantMessage);
-                                } else {
-                                    messageEl.querySelector('.message-content').innerHTML =
-                                        formatMessage(assistantMessage) + ttsButton(assistantMessage);
-                                }
-                            }
-                            if (data.memory_saved) {
-                                showMemoryToast(data.key);
-                                loadMemoryPreview();
-                            }
-                        } catch (_) {}
-                    }
-                }
-            } catch (err) {
-                addMessage('assistant', '❌ Error: ' + err.message);
-            }
-
-            sendBtn.disabled = false;
-            sendBtn.textContent = 'SEND ⚡';
-        }
-
-        // Store TTS text in a map to avoid HTML encoding issues
-        const ttsTextMap = {};
-        let ttsCounter = 0;
-
-        function ttsButton(text) {
-            const id = 'tts_' + (ttsCounter++);
-            ttsTextMap[id] = text.replace(/```[\s\S]*?```/g, '').replace(/<[^>]+>/g, '').trim().slice(0, 500);
-            return `<button class="tts-btn" onclick="speakById('${id}')">🔊</button>`;
-        }
-
-        async function speakById(id) {
-            const text = ttsTextMap[id];
-            if (!text) return;
-            const btn = event.target;
-            try {
-                btn.textContent = '⏳';
-                btn.disabled = true;
-                const resp = await fetch('/api/voice/speak', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, persona: currentPersona })
-                });
-                if (!resp.ok) {
-                    const errData = await resp.json().catch(() => ({}));
-                    console.error('TTS error:', errData);
-                    btn.textContent = '🔊'; btn.disabled = false;
-                    return;
-                }
-                const blob = await resp.blob();
-                const url = URL.createObjectURL(blob);
-                const audio = new Audio(url);
-                audio.onended = () => { btn.textContent = '🔊'; btn.disabled = false; URL.revokeObjectURL(url); };
-                audio.onerror = () => { btn.textContent = '🔊'; btn.disabled = false; };
-                await audio.play();
-            } catch (err) {
-                btn.textContent = '🔊'; btn.disabled = false;
-                console.error('TTS error:', err);
-            }
-        }
-
-        function formatMessage(content) {
-            content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) =>
-                `<pre><code>${escapeHtml(code)}</code></pre>`);
-            content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
-            content = content.replace(/\n/g, '<br>');
-            return content;
-        }
-
-        function escapeHtml(text) {
-            const d = document.createElement('div');
-            d.textContent = text;
-            return d.innerHTML;
-        }
-
-        function addMessage(role, content) {
-            const chatArea = document.getElementById('chat-area');
-            const div = document.createElement('div');
-            div.className = `message ${role}`;
-            const avatar = role === 'user' ? '👤' : (currentPersona === 'raven' ? '🦇' : '💀');
-            const tts = role === 'assistant' ? ttsButton(content) : '';
-            div.innerHTML = `<div class="avatar">${avatar}</div>
-                <div class="message-content">${formatMessage(content)}${tts}</div>`;
-            chatArea.appendChild(div);
-            chatArea.scrollTop = chatArea.scrollHeight;
-            return div;
-        }
-
-        // ── History ──────────────────────────────────────────────────────────
-        async function loadHistory() {
-            const resp = await fetch('/api/history');
-            const history = await resp.json();
-            const chatArea = document.getElementById('chat-area');
-            chatArea.innerHTML = '';
-            history.forEach(msg => addMessage(msg.role, msg.content));
-        }
-
-        async function clearHistory() {
-            if (!confirm('Clear all chat history?')) return;
-            await fetch('/api/history/clear', { method: 'POST' });
-            document.getElementById('chat-area').innerHTML = '';
-            addMessage('assistant', 'History cleared. Fresh start! 🖤');
-        }
-
-        function exportChat() {
-            const msgs = [...document.querySelectorAll('.message')].map(m => {
-                const role = m.classList.contains('user') ? 'YOU' : currentPersona.toUpperCase();
-                return `[${role}] ${m.querySelector('.message-content').innerText.replace('🔊','').trim()}`;
-            }).join('\n\n');
-            const blob = new Blob([msgs], { type: 'text/plain' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `riot-ai-chat-${Date.now()}.txt`;
-            a.click();
-        }
-
-        // ── Code Editor ──────────────────────────────────────────────────────
-        function initCodeEditor() {
-            if (!codeEditor) {
-                codeEditor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
-                    mode: 'python', theme: 'dracula', lineNumbers: true,
-                    autoCloseBrackets: true, matchBrackets: true
-                });
-            }
-        }
-
-        function openCodeEditor() {
-            document.getElementById('code-modal').classList.add('active');
-            initCodeEditor();
-        }
-
-        function closeCodeEditor() {
-            document.getElementById('code-modal').classList.remove('active');
-        }
-
-        function insertCodeToChat() {
-            const code = codeEditor.getValue();
-            const lang = document.getElementById('code-language').value;
-            document.getElementById('message-input').value += `\n\`\`\`${lang}\n${code}\n\`\`\`\n`;
-            closeCodeEditor();
-        }
-
-        function runCode() {
-            const code = codeEditor.getValue();
-            const lang = document.getElementById('code-language').value;
-            document.getElementById('message-input').value = `Run this ${lang} code:\n\`\`\`${lang}\n${code}\n\`\`\``;
-            closeCodeEditor();
-            sendMessage();
-        }
-
-        // ── Misc ─────────────────────────────────────────────────────────────
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-        }
-
-        function insertCode() {
-            const input = document.getElementById('message-input');
-            input.value += '\n```python\n\n```\n';
-        }
-
-        function insertEmoji() {
-            const emojis = ['🖤','⚡','💀','🦇','🛹','🎸','🔥','💣','🌙','✨','🖤','💔'];
-            document.getElementById('message-input').value += emojis[Math.floor(Math.random() * emojis.length)];
-        }
-
-        function attachFile(input) {
-            if (!input.files[0]) return;
-            const reader = new FileReader();
-            reader.onload = e => {
-                document.getElementById('message-input').value += `\n[File: ${input.files[0].name}]\n${e.target.result}\n`;
-            };
-            reader.readAsText(input.files[0]);
-            input.value = '';
-        }
-
-        // ── Init ─────────────────────────────────────────────────────────────
-        document.querySelectorAll('.persona-card').forEach(card => {
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-                currentPersona = card.dataset.persona;
-            });
-        });
-
-        document.getElementById('model-select').addEventListener('change', e => {
-            currentModel = e.target.value;
-        });
-
-        const inputEl = document.getElementById('message-input');
-        inputEl.addEventListener('input', () => {
-            inputEl.style.height = 'auto';
-            inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
-        });
-        inputEl.addEventListener('keydown', e => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-        });
-    </script>
+  loadHistory();
+</script>
 </body>
 </html>
