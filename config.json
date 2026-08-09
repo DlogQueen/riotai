@@ -43,6 +43,15 @@
       "api_key": "SET_VIA_ENV_OPENROUTER_API_KEY",
       "enabled": true,
       "description": "One key, pick any model on OpenRouter (Claude, Llama, Gemini, etc). Chat only - voice/STT still needs an OpenAI key."
+    },
+    "groq": {
+      "name": "Groq",
+      "provider": "groq",
+      "base_url": "https://api.groq.com/openai/v1",
+      "model": "llama-3.3-70b-versatile",
+      "api_key": "SET_VIA_ENV_GROQ_API_KEY",
+      "enabled": true,
+      "description": "Fast, free-tier-friendly. Chat only - voice/STT/vision still need an OpenAI key."
     }
   },
   "tools": {
@@ -55,7 +64,7 @@
   },
   "settings": {
     "default_persona": "bear",
-    "default_model": "cloud",
+    "default_model": "groq",
     "max_history": 100,
     "temperature": 0.85,
     "max_tokens": 700,

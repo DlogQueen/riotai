@@ -30,4 +30,8 @@ def get_config() -> dict:
             _config['models']['openrouter']['api_key'] = os.environ['OPENROUTER_API_KEY']
         if os.environ.get('OPENROUTER_MODEL'):
             _config['models']['openrouter']['model'] = os.environ['OPENROUTER_MODEL']
+        if os.environ.get('GROQ_API_KEY'):
+            _config['models']['groq']['api_key'] = os.environ['GROQ_API_KEY']
+        if os.environ.get('GROQ_MODEL'):
+            _config['models']['groq']['model'] = os.environ['GROQ_MODEL']
     return _config

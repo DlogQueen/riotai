@@ -39,13 +39,17 @@ cp .env.example .env   # add your OPENAI_API_KEY
 
 Then open http://localhost:5001.
 
-Only `OPENAI_API_KEY` is required (it powers chat, voice transcription/TTS,
-and image analysis). Everything else in `.env.example` is optional:
+`config.json` currently has `settings.default_model` set to `"groq"`, so
+chat runs on Groq for now (fast, generous free tier) - add `GROQ_API_KEY`
+to get chatting. `OPENAI_API_KEY` is still needed for voice (STT/TTS) and
+vision, and for chat if you switch `default_model` back to `"cloud"`.
+Everything else in `.env.example` is optional:
 
 | Var | Enables |
 |---|---|
-| `OPENAI_API_KEY` | Chat, voice (STT/TTS), vision. **Required.** |
-| `OPENROUTER_API_KEY` | Swap the chat model to anything on [OpenRouter](https://openrouter.ai) (Claude, Llama, Gemini, ...) — set `settings.default_model` to `"openrouter"` in `config.json`. Voice/vision still need the OpenAI key above. |
+| `GROQ_API_KEY` | Chat - this is the active `default_model` right now. |
+| `OPENAI_API_KEY` | Voice (STT/TTS), vision, and chat if `default_model` is `"cloud"`. |
+| `OPENROUTER_API_KEY` | Swap chat to anything on [OpenRouter](https://openrouter.ai) (Claude, Llama, Gemini, ...) — set `default_model` to `"openrouter"`. |
 | `SUPABASE_URL` / `SUPABASE_KEY` | Persistent memory in Supabase instead of local SQLite (see `supabase_schema.sql`). |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_PHONE_NUMBER` | Coach's Hotline (calls/texts). |
 
