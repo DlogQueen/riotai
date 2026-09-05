@@ -59,6 +59,20 @@ if os.environ.get('OPENAI_API_KEY'):
     config['models']['cloud']['api_key'] = os.environ['OPENAI_API_KEY']
 if os.environ.get('OPENAI_MODEL'):
     config['models']['cloud']['model'] = os.environ['OPENAI_MODEL']
+if os.environ.get('GROQ_API_KEY'):
+    config['models']['groq']['api_key'] = os.environ['GROQ_API_KEY']
+if os.environ.get('GROQ_MODEL'):
+    config['models']['groq']['model'] = os.environ['GROQ_MODEL']
+
+# Fall back to whatever actually has a key, so a missing GROQ_API_KEY degrades
+# to OpenAI instead of failing every request.
+_default = config['settings']['default_model']
+if not str(config['models'][_default].get('api_key', '')).startswith(('sk-', 'gsk_')):
+    for _alt in ('groq', 'cloud', 'local'):
+        if str(config['models'].get(_alt, {}).get('api_key', '')).startswith(('sk-', 'gsk_')):
+            print(f"[MODEL] {_default} has no key, falling back to {_alt}")
+            config['settings']['default_model'] = _alt
+            break
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY') or 'riot-dev-secret-change-me-in-prod'
@@ -214,8 +228,9 @@ def chat_stream():
             client = get_client(model_key)
             model_cfg = config['models'][model_key]
 
-            # Only use tools with cloud model (local doesn't support tool calling)
-            use_tools = model_key == 'cloud'
+            # Tool support is declared per model in config.json (local models
+            # and some hosted ones do not implement tool calling).
+            use_tools = bool(model_cfg.get('supports_tools'))
 
             if use_tools:
                 # Non-streaming first pass to handle tool calls
