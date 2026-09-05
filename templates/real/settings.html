@@ -1,0 +1,53 @@
+{% extends "real/base.html" %}
+{% block title %}Your profile · In the Raw{% endblock %}
+{% block content %}
+<h1 class="page">Your profile</h1>
+<div class="sub">Answer what you want to answer. Blank is an honest answer too.</div>
+
+<form method="post" style="max-width:520px">
+  <label class="field">Name</label>
+  <input type="text" name="display_name" maxlength="60" value="{{ user.display_name or '' }}">
+
+  <label class="field">Pronouns</label>
+  <input type="text" name="pronouns" maxlength="30" value="{{ user.pronouns or '' }}">
+
+  <label class="field">Where you are</label>
+  <input type="text" name="location" maxlength="60" value="{{ user.location or '' }}">
+
+  <label class="field">Bio <span>— not a résumé</span></label>
+  <textarea name="bio" rows="3" maxlength="400">{{ user.bio or '' }}</textarea>
+
+  <label class="field">What you are actually dealing with</label>
+  <textarea name="dealing_with" rows="3" maxlength="400">{{ user.dealing_with or '' }}</textarea>
+
+  <label class="field">What is going okay</label>
+  <textarea name="going_okay" rows="3" maxlength="400">{{ user.going_okay or '' }}</textarea>
+
+  <label class="field">What you are bad at</label>
+  <textarea name="bad_at" rows="3" maxlength="400">{{ user.bad_at or '' }}</textarea>
+
+  <label class="field">Where you are at right now</label>
+  <select name="current_state">
+    {% for k, s in STATES.items() %}
+    <option value="{{ k }}" {% if k == user.current_state %}selected{% endif %}>{{ s.emoji }} {{ s.label }}</option>
+    {% endfor %}
+  </select>
+
+  <label class="field">Profile colour</label>
+  <div style="display:flex; gap:8px; flex-wrap:wrap">
+    {% for c in ['#8a4a3a','#4f7f5a','#5b6b8a','#7a4f6b','#7f7040','#4f6f7f','#7a6a55'] %}
+    <label style="cursor:pointer">
+      <input type="radio" name="avatar_color" value="{{ c }}" {% if user.avatar_color == c %}checked{% endif %}
+             style="display:none" onchange="this.form.submit()">
+      <span style="display:block; width:34px; height:34px; background:{{ c }}; border-radius:2px;
+        border:2px solid {{ 'var(--ink)' if user.avatar_color == c else 'transparent' }}"></span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top:26px">
+    <button class="btn solid" type="submit">Save</button>
+    <a class="btn" href="{{ url_for('real.profile', handle=user.handle) }}" style="text-decoration:none; margin-left:8px">View profile</a>
+  </div>
+</form>
+{% endblock %}

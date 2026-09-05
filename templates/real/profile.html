@@ -1,0 +1,85 @@
+{% extends "real/base.html" %}
+{% from "real/_post.html" import render_post %}
+{% block title %}{{ user.display_name or user.handle }} · In the Raw{% endblock %}
+{% block content %}
+
+<div style="border:1px solid var(--line); background:var(--panel); padding:20px; margin-top:26px">
+  <div style="display:flex; gap:16px; align-items:flex-start">
+    <div class="avatar lg" style="background:{{ user.avatar_color }}">{{ (user.display_name or user.handle)[0]|upper }}</div>
+    <div style="flex:1; min-width:0">
+      <div style="font-family:var(--serif); font-size:25px; line-height:1.2">{{ user.display_name or user.handle }}</div>
+      <div class="muted tiny">
+        @{{ user.handle }}
+        {%- if user.pronouns %} · {{ user.pronouns }}{% endif -%}
+        {%- if user.location %} · {{ user.location }}{% endif %}
+      </div>
+      <div style="margin-top:9px">
+        <span class="state-chip" style="color:{{ state_meta.color }}; border-color:{{ state_meta.color }}">
+          {{ state_meta.emoji }} right now: {{ state_meta.label }}
+        </span>
+      </div>
+    </div>
+    <div>
+      {% if is_me %}
+        <a class="btn" href="{{ url_for('real.edit_profile') }}" style="text-decoration:none">Edit</a>
+      {% else %}
+        <form method="post" action="{{ url_for('real.follow_user', handle=user.handle) }}">
+          <button class="btn {% if not i_follow %}solid{% endif %}" type="submit">
+            {{ 'Following' if i_follow else 'Follow' }}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if user.bio %}<p style="font-family:var(--serif); font-size:16.5px; margin:18px 0 0">{{ user.bio }}</p>{% endif %}
+
+  {% set blocks = [
+      ('What I am actually dealing with', user.dealing_with),
+      ('What is going okay', user.going_okay),
+      ('What I am bad at', user.bad_at) ] %}
+  {% if blocks | selectattr(1) | list %}
+  <div style="margin-top:20px; display:grid; gap:14px">
+    {% for label, text in blocks %}{% if text %}
+    <div>
+      <div class="tiny" style="letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint)">{{ label }}</div>
+      <div style="font-family:var(--serif); font-size:16px; white-space:pre-wrap; margin-top:3px">{{ text }}</div>
+    </div>
+    {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="tiny faint" style="margin-top:20px; border-top:1px solid var(--line); padding-top:12px">
+    Here since {{ user.created_at|joined }}.
+    {% if is_me %}
+      {{ follower_count }} follow you · you follow {{ following_count }}.
+      <span style="color:var(--ink-faint)">(Only you can see these.)</span>
+    {% else %}
+      {% if follows_me %}Follows you.{% endif %}
+      {% if i_follow %} You follow them.{% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% if is_me %}
+<form method="post" action="{{ url_for('real.new_post') }}"
+      style="border:1px solid var(--line); background:var(--panel); padding:16px; margin-top:16px">
+  <div class="tiny muted" style="margin-bottom:8px">{{ prompt }}</div>
+  <textarea name="body" rows="3" maxlength="1200" required placeholder="Just what is happening."></textarea>
+  <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap">
+    <select name="state" style="width:auto; flex:1; min-width:180px">
+      {% for k, s in STATES.items() %}
+      <option value="{{ k }}" {% if k == user.current_state %}selected{% endif %}>{{ s.emoji }} {{ s.label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn solid" type="submit">Post it</button>
+  </div>
+</form>
+{% endif %}
+
+<h1 class="page" style="font-size:20px; margin-top:34px">
+  {{ 'Your posts' if is_me else 'Posts' }}
+</h1>
+{% for p in posts %}{{ render_post(p, REACTIONS) }}{% endfor %}
+{% if not posts %}<p class="muted">Nothing posted yet.</p>{% endif %}
+{% endblock %}

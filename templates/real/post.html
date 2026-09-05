@@ -1,0 +1,8 @@
+{% extends "real/base.html" %}
+{% from "real/_post.html" import render_post %}
+{% block title %}Post · In the Raw{% endblock %}
+{% block content %}
+<h1 class="page">A post</h1>
+<div class="sub"><a href="{{ url_for('real.feed') }}">back to the feed</a></div>
+{{ render_post(post, REACTIONS) }}
+{% endblock %}

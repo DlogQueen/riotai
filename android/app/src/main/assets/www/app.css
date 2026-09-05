@@ -1,0 +1,340 @@
+/* In the Raw — Android client.
+
+   Design system, enforced rather than merely declared:
+   - radii:   28 / 20 / 14 / pill. Nested radius = outer − inset.
+   - spacing: an 8px scale. Gaps carry meaning — 8 binds, 20 separates, 28 breaks.
+   - targets: every interactive element is at least 44px on its short edge.
+   - colour:  secondary text sits at >=.86 opacity on the deep state tones, which
+              is where 12px text stops passing contrast otherwise.
+   - type:    no webfont is bundled (the app runs offline with zero network), so
+              tracking is tuned for the system faces that actually render. */
+
+:root{
+  --bg:#000;
+  --card:#141414;
+  --card-2:#1d1d1d;
+  --line:#2a2a2a;
+
+  --ink:#fff;
+  --dim:#9b9b9b;
+  --faint:#7b7b7b;
+  --accent:#c4553d;
+  --grad:linear-gradient(90deg,#e0533a,#a24bd8);
+
+  --r-lg:28px;
+  --r-md:20px;
+  --r-sm:14px;
+  --r-pill:999px;
+
+  --nav-h:74px;
+  --toast-bottom:calc(env(safe-area-inset-bottom,0px) + 26px);
+
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.45;
+  overscroll-behavior:none;
+  -webkit-user-select:none;
+  user-select:none;
+  background-image:radial-gradient(rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:3px 3px;
+}
+input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+.hide{display:none!important}
+.tiny{font-size:12px}
+.muted{color:var(--dim)}
+.faint{color:var(--faint)}
+
+/* ── shell ─────────────────────────────────────────────────────────────── */
+#screen{height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+/* Reserve the nav pill (74) + its inset (12) + the floating button above it
+   (56 + 28), so no card control is ever underneath floating chrome. */
+.pad{padding:0 16px calc(var(--nav-h) + 104px)}
+
+/* ── masthead ──────────────────────────────────────────────────────────── */
+header.top,.top{
+  position:sticky;top:0;z-index:30;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(16px) saturate(1.3);
+  -webkit-backdrop-filter:blur(16px) saturate(1.3);
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 14px;
+  display:flex;align-items:center;gap:10px;
+}
+.mark{
+  width:44px;height:44px;border-radius:50%;background:#fff;color:#000;
+  display:grid;place-items:center;font-weight:800;font-size:17px;letter-spacing:-.5px;
+}
+.circ{
+  width:44px;height:44px;border-radius:50%;background:#181818;
+  display:grid;place-items:center;font-size:17px;position:relative;flex:0 0 44px;
+}
+.circ .dot{
+  position:absolute;top:-2px;right:-4px;min-width:20px;height:20px;padding:0 5px;
+  border-radius:var(--r-pill);background:#000;border:1.5px solid var(--accent);
+  color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;
+}
+.spacer{margin-left:auto}
+
+/* ── tabs ──────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:20px;padding:4px 16px 12px}
+.tab{
+  font-size:23px;font-weight:700;color:var(--faint);white-space:nowrap;
+  letter-spacing:-.4px;padding:7px 0 9px;border-bottom:2px solid transparent;
+}
+.tab.on{color:#fff;border-bottom-color:var(--accent)}
+
+/* ── headings ──────────────────────────────────────────────────────────── */
+.h1{font-size:32px;font-weight:700;letter-spacing:-.6px;margin:8px 0 4px}
+.h2{font-size:19px;font-weight:700;letter-spacing:-.2px;margin:28px 0 12px;
+  display:flex;align-items:baseline;gap:10px}
+.h2 .more{margin-left:auto;font-size:13px;font-weight:500;color:var(--faint)}
+.sub{color:var(--dim);font-size:14px;margin-bottom:20px}
+
+/* ── "right now" rail ──────────────────────────────────────────────────── */
+.rail{display:flex;gap:14px;overflow-x:auto;padding:2px 16px 4px;margin:0 -16px;
+  scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail-item{width:66px;flex:0 0 66px;text-align:center}
+.ring{width:66px;height:66px;border-radius:50%;padding:2.5px;display:grid;
+  place-items:center;margin-bottom:6px}
+.ring>span{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;
+  font-size:24px;background:#000}
+.rail-item small{display:block;font-size:11px;color:var(--dim);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+/* ── post card ─────────────────────────────────────────────────────────── */
+.post{
+  border-radius:var(--r-lg);padding:20px;margin-bottom:14px;position:relative;
+  overflow:hidden;color:#fff;
+}
+.post::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 85% 0%,rgba(255,255,255,.09),transparent 62%);
+}
+.post .who{display:flex;align-items:center;gap:10px;position:relative;z-index:1;min-width:0}
+.pfp{
+  width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  font-weight:700;font-size:16px;color:#000;flex:0 0 38px;overflow:hidden;
+  box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.28);
+}
+.pfp img{width:100%;height:100%;object-fit:cover;display:block}
+.who b{
+  font-size:15px;font-weight:600;min-width:0;flex:1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.who .st{
+  flex:0 0 auto;font-size:11px;font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;background:rgba(0,0,0,.3);padding:6px 11px;
+  border-radius:var(--r-pill);white-space:nowrap;
+}
+.post .txt{
+  position:relative;z-index:1;margin:20px 0 0;font-size:29px;line-height:1.16;
+  font-weight:700;letter-spacing:-.5px;white-space:pre-wrap;
+  word-break:break-word;overflow-wrap:anywhere;
+}
+.post .txt.long{font-size:20px;line-height:1.34;letter-spacing:-.1px;font-weight:600}
+/* Photo is inset 20px inside a 28px card, so its radius is 28 − 20 rounded up. */
+.shot{
+  margin:16px 0 0;border-radius:12px;overflow:hidden;position:relative;z-index:1;
+  background:rgba(0,0,0,.25);max-height:420px;
+}
+.shot img{width:100%;display:block;object-fit:cover;max-height:420px}
+
+/* the timestamp doubles as the replies toggle, so it is sized like a control */
+.post .when{
+  position:relative;z-index:1;margin-top:12px;font-size:12.5px;font-weight:600;
+  color:rgba(255,255,255,.9);display:inline-flex;align-items:center;gap:6px;
+  min-height:40px;padding:0;
+}
+.post .when .chev{opacity:.75;font-size:11px}
+
+.rx{display:flex;flex-wrap:wrap;gap:7px;padding-top:14px;position:relative;z-index:1}
+.rx button{
+  flex:0 0 auto;font-size:12px;font-weight:600;padding:0 12px;min-height:40px;
+  border-radius:var(--r-pill);background:rgba(0,0,0,.26);color:#fff;
+  display:flex;align-items:center;gap:5px;border:1.5px solid transparent;
+}
+.rx button.on{background:#000;border-color:rgba(255,255,255,.6)}
+.rx button .n{font-weight:800}
+
+.post .acts{display:flex;gap:10px;align-items:center;position:relative;z-index:1;margin-top:12px}
+.post .acts button{
+  font-size:12.5px;font-weight:600;min-height:40px;padding:0 14px;
+  border-radius:var(--r-pill);background:rgba(0,0,0,.3);color:#fff;
+  border:1.5px solid rgba(255,255,255,.28);
+}
+
+.thread{margin:20px 0 0;padding-top:16px;border-top:1px solid rgba(0,0,0,.22);
+  position:relative;z-index:1}
+.cmt{padding:9px 0;font-size:14px}
+.cmt b{font-weight:700}
+.cmt span{opacity:.94;display:block;word-break:break-word;overflow-wrap:anywhere}
+.cbox{display:flex;gap:8px;margin-top:12px}
+.cbox input{
+  flex:1;min-width:0;background:rgba(0,0,0,.32);border:0;border-radius:var(--r-pill);
+  min-height:44px;padding:0 16px;color:#fff;font-size:14px;
+}
+.cbox input::placeholder{color:rgba(255,255,255,.74)}
+.cbox button{background:#000;border-radius:var(--r-pill);min-height:44px;
+  padding:0 18px;font-weight:700;font-size:13px}
+form.inline{display:inline}
+
+/* ── people mosaic ─────────────────────────────────────────────────────── */
+.mosaic{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{
+  border-radius:var(--r-md);padding:16px;min-height:156px;display:flex;
+  flex-direction:column;justify-content:flex-end;color:#000;position:relative;
+  overflow:hidden;
+}
+.tile.wide{grid-column:1 / -1;min-height:150px}
+.tile .pfp{position:absolute;top:16px;left:16px;width:46px;height:46px;flex-basis:46px;font-size:19px}
+.tile b{
+  font-size:18px;font-weight:700;letter-spacing:-.2px;line-height:1.15;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tile small{font-size:12px;opacity:.72;margin-top:3px}
+.tile .fol{
+  position:absolute;top:12px;right:12px;font-size:12px;font-weight:700;
+  min-height:40px;padding:0 16px;border-radius:var(--r-pill);
+  background:rgba(0,0,0,.82);color:#fff;display:flex;align-items:center;
+}
+.tile .fol.on{background:rgba(255,255,255,.92);color:#000}
+@media (min-width:440px){ .mosaic{grid-template-columns:repeat(3,1fr)} .tile.wide{grid-column:span 3} }
+
+/* ── profile ───────────────────────────────────────────────────────────── */
+.phead{border-radius:var(--r-lg);padding:22px;color:#000;position:relative;overflow:hidden}
+.phead .pfp{width:76px;height:76px;flex-basis:76px;font-size:31px;margin-bottom:16px;
+  border-radius:var(--r-sm)}
+.phead h2{font-size:29px;font-weight:700;letter-spacing:-.5px;margin:0;
+  word-break:break-word;overflow-wrap:anywhere}
+.phead .meta{font-size:13px;opacity:.78;margin-top:4px;word-break:break-word;overflow-wrap:anywhere}
+.phead .bio{font-size:15px;margin-top:16px;line-height:1.45;
+  word-break:break-word;overflow-wrap:anywhere}
+.qa{margin-top:20px}
+.qa div{margin-bottom:14px}
+.qa dt{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.82}
+.qa dd{margin:3px 0 0;font-size:15px;line-height:1.4;white-space:pre-wrap;
+  word-break:break-word;overflow-wrap:anywhere}
+.priv{margin-top:20px;font-size:12.5px;opacity:.8;border-top:1px solid rgba(0,0,0,.16);
+  padding-top:14px;line-height:1.5}
+
+/* ── forms ─────────────────────────────────────────────────────────────── */
+.field{display:block;font-size:13px;color:var(--dim);margin:20px 0 8px}
+.inp{
+  width:100%;background:#181818;border:1.5px solid transparent;border-radius:var(--r-sm);
+  min-height:52px;padding:15px 16px;color:#fff;font-size:15px;
+}
+.inp:focus{outline:none;border-color:var(--accent)}
+textarea.inp{resize:none;line-height:1.45}
+
+.grad-btn{width:100%;margin-top:28px;padding:2px;border-radius:var(--r-pill);
+  background:var(--grad);display:block}
+.grad-btn>span{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  background:#0a0a0a;border-radius:var(--r-pill);min-height:56px;
+  font-size:16px;font-weight:600;
+}
+.solid-btn{width:100%;margin-top:24px;background:#fff;color:#000;
+  border-radius:var(--r-pill);min-height:56px;font-size:16px;font-weight:700}
+.ghost-btn{width:100%;margin-top:12px;background:#181818;border-radius:var(--r-pill);
+  min-height:52px;font-size:15px;font-weight:600;color:var(--dim)}
+
+.states{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+.states button{
+  flex:0 0 auto;border-radius:var(--r-pill);padding:0 15px;min-height:44px;
+  font-size:13px;font-weight:600;background:#181818;color:var(--dim);
+  display:flex;gap:6px;align-items:center;border:2px solid transparent;
+}
+.states button.on{color:#000}
+
+.err{background:#2a1512;border-left:3px solid var(--accent);border-radius:10px;
+  padding:12px 14px;font-size:13.5px;margin-top:16px}
+.flash{border-left:3px solid var(--accent);background:var(--card);padding:10px 14px;
+  margin:16px 0;font-size:14px}
+
+/* ── photos ────────────────────────────────────────────────────────────── */
+.pick-btn{
+  display:inline-flex;align-items:center;margin-top:16px;background:#181818;
+  border:1.5px dashed #3a3a3a;border-radius:var(--r-sm);min-height:52px;
+  padding:0 18px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;
+}
+.pick-btn.sm{margin-top:0;min-height:44px;padding:0 14px;font-size:13px}
+.pick-btn:active,.pick-btn:focus-within{border-color:var(--accent);color:#fff}
+.pick{margin-top:16px;position:relative;border-radius:var(--r-md);overflow:hidden}
+.pick img{width:100%;display:block;max-height:300px;object-fit:cover}
+.pick-x{
+  position:absolute;top:10px;right:10px;background:rgba(0,0,0,.8);color:#fff;
+  border-radius:var(--r-pill);min-height:40px;padding:0 16px;font-size:12.5px;font-weight:600;
+}
+.pick-x.sm{position:static;display:inline-flex;align-items:center;margin-left:8px;
+  background:#181818;color:var(--dim)}
+.avatar-row{display:flex;gap:16px;align-items:center;margin-top:4px}
+.avatar-row .pfp.lg{width:84px;height:84px;flex:0 0 84px;font-size:34px;border-radius:var(--r-md)}
+
+/* ── auth ──────────────────────────────────────────────────────────────── */
+.auth{padding:0 22px calc(env(safe-area-inset-bottom,0px) + 36px)}
+.auth .wave{display:block;width:100%;height:70px;margin:-6px 0 0}
+.auth h1{font-size:44px;font-weight:700;letter-spacing:-1.2px;text-align:center;margin:24px 0 0}
+.auth [data-auth="swap"]{white-space:nowrap}
+.auth .swap{text-align:center;margin-top:24px;font-size:14px;color:var(--dim)}
+.auth .swap b{color:#fff}
+.auth .or{margin-top:28px;font-size:12.5px;line-height:1.6;color:var(--faint);
+  text-align:center;max-width:34ch;margin-left:auto;margin-right:auto}
+
+/* ── floating controls ─────────────────────────────────────────────────── */
+/* The container is wider than the button it holds, so it must not eat taps
+   meant for the card underneath. Only the button itself is clickable. */
+.fabs{
+  position:fixed;right:16px;
+  bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 28px);
+  z-index:40;display:flex;flex-direction:column;gap:11px;pointer-events:none;
+}
+.fabs .fab{pointer-events:auto}
+.fab{
+  width:56px;height:56px;border-radius:50%;background:#0d0d0d;border:1.5px solid #333;
+  display:grid;place-items:center;font-size:22px;box-shadow:0 8px 26px rgba(0,0,0,.6);
+}
+.fab.primary{background:#fff;color:#000;border-color:#fff}
+
+.nav{
+  position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+  height:var(--nav-h);background:rgba(16,16,16,.86);
+  border:1px solid rgba(255,255,255,.10);border-radius:34px;
+  backdrop-filter:blur(18px) saturate(1.4);
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);
+  display:flex;align-items:center;justify-content:space-around;z-index:45;
+  box-shadow:0 10px 34px rgba(0,0,0,.65);
+}
+.nav button{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  font-size:10.5px;color:#8b8b8b;flex:1;font-weight:600;height:100%;border-radius:28px;
+}
+.nav button svg{width:22px;height:22px;display:block}
+.nav button.on{color:#fff}
+.nav button.on svg{stroke-width:2.1}
+
+.empty{text-align:center;color:var(--dim);font-size:14.5px;padding:44px 20px;line-height:1.6}
+
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%) translateY(20px);
+  bottom:var(--toast-bottom);background:#fff;color:#000;font-size:13.5px;
+  font-weight:600;padding:12px 20px;border-radius:var(--r-pill);z-index:60;opacity:0;
+  transition:opacity .2s,transform .2s;pointer-events:none;max-width:82%;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.note{font-size:12.5px;color:var(--faint);border-top:1px solid var(--line);
+  margin-top:36px;padding-top:14px;line-height:1.7}
+
+/* Screens that carry the nav pill push the toast above it; the composer and
+   settings have no nav, and the toast was landing on their primary button. */
+body.has-nav{--toast-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 26px)}
