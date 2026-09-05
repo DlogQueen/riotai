@@ -1,0 +1,43 @@
+{% extends "real/base.html" %}
+{% from "real/_post.html" import render_post %}
+{% block title %}{{ heading|default('Your feed') }} · RAW{% endblock %}
+{% block content %}
+
+<h1 class="page">{{ heading|default('Your feed') }}</h1>
+<div class="sub">{{ subheading|default('Newest first. That is the whole ranking system.') }}</div>
+
+{% if me %}
+<form method="post" action="{{ url_for('real.new_post') }}"
+      style="border:1px solid var(--line); background:var(--panel); padding:16px; border-radius:2px">
+  <div class="tiny muted" style="margin-bottom:8px">{{ prompt }}</div>
+  <textarea name="body" rows="4" maxlength="1200" required
+            placeholder="No filter, no caption voice. Just what is happening."></textarea>
+  <div style="display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap">
+    <select name="state" style="width:auto; flex:1; min-width:180px">
+      {% for k, s in STATES.items() %}
+      <option value="{{ k }}" {% if k == me.current_state %}selected{% endif %}>{{ s.emoji }} {{ s.label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn solid" type="submit">Post it</button>
+  </div>
+  <div class="tiny faint" style="margin-top:10px">You can delete this later. You cannot edit it.</div>
+</form>
+{% endif %}
+
+<div style="margin-top:10px">
+  {% for p in posts %}{{ render_post(p, REACTIONS) }}{% endfor %}
+</div>
+
+{% if not posts %}
+<p class="muted" style="margin-top:30px">
+  {% if empty_hint %}Nothing here yet. Write the first one, or go find
+  <a href="{{ url_for('real.people') }}">people</a> to follow.{% else %}Nothing yet.{% endif %}
+</p>
+{% endif %}
+
+<div class="note">
+  Reaction counts are shown to whoever wrote the post and to nobody else.
+  Follower counts are shown to whoever is being followed and to nobody else.
+  Nothing on this page is ordered by anything but time.
+</div>
+{% endblock %}

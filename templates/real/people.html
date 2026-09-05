@@ -1,0 +1,28 @@
+{% extends "real/base.html" %}
+{% block title %}People · RAW{% endblock %}
+{% block content %}
+<h1 class="page">People</h1>
+<div class="sub">Everyone who is here. No suggestions, no ranking — just the list.</div>
+
+{% for u in users %}
+{% set s = STATES.get(u.current_state, STATES['mundane']) %}
+<div style="display:flex; gap:12px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line)">
+  <a class="avatar" href="{{ url_for('real.profile', handle=u.handle) }}"
+     style="background:{{ u.avatar_color }}">{{ (u.display_name or u.handle)[0]|upper }}</a>
+  <div style="flex:1; min-width:0">
+    <a class="name" href="{{ url_for('real.profile', handle=u.handle) }}">{{ u.display_name or u.handle }}</a>
+    <span class="faint tiny">@{{ u.handle }}</span>
+    <div class="tiny muted" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+      {{ u.bio or u.dealing_with or '—' }}
+    </div>
+  </div>
+  <span class="state-chip" style="color:{{ s.color }}; border-color:{{ s.color }}">{{ s.emoji }} {{ s.label }}</span>
+  <form method="post" action="{{ url_for('real.follow_user', handle=u.handle) }}">
+    <button class="btn {% if u.id not in following %}solid{% endif %}" type="submit">
+      {{ 'Following' if u.id in following else 'Follow' }}
+    </button>
+  </form>
+</div>
+{% endfor %}
+{% if not users %}<p class="muted">Nobody else yet. You are early.</p>{% endif %}
+{% endblock %}

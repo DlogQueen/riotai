@@ -1,0 +1,38 @@
+{% extends "real/base.html" %}
+{% block title %}RAW · social media for actual life{% endblock %}
+{% block content %}
+
+<div style="padding:56px 0 8px">
+  <h1 style="font-family:var(--serif); font-size:44px; line-height:1.1; margin:0 0 18px">
+    Everyone else is<br>having a great week.
+  </h1>
+  <p style="font-size:18px; color:var(--ink-dim); max-width:52ch; margin:0 0 26px">
+    They are not. RAW is a social network with real profiles, real feeds, real people —
+    built for the part of your life that does not photograph well.
+  </p>
+  <a class="btn solid" href="{{ url_for('real.join') }}" style="text-decoration:none">Make a profile</a>
+  <a class="btn" href="{{ url_for('real.login') }}" style="text-decoration:none; margin-left:8px">Log in</a>
+</div>
+
+<div style="margin-top:52px; display:grid; gap:2px">
+  {% set rules = [
+    ('Posts have to name a state', 'Nine of them: rough day, grinding, nothing special, small win, spiraling, healing, angry, numb, okay actually. There is no “living my best life” option and there never will be.'),
+    ('Reactions, not likes', 'Been there. I see you. Holding this. Proud of you. Same. You cannot “like” somebody’s worst week, so you can’t here.'),
+    ('Counts are private', 'Reaction counts go to the person who wrote the post. Follower counts go to the person being followed. Nobody performs numbers at anybody.'),
+    ('The feed is a clock', 'Chronological. No ranking, no suggested posts, no engagement scoring. It shows what happened, when it happened.'),
+    ('You cannot edit a post', 'You can delete it. That is different. Deleting is honest — quietly rewriting yesterday is not.'),
+    ('Profiles ask harder questions', 'Not just a bio. What you are dealing with. What is actually going okay. What you are bad at. The stuff a real profile of a person would say.'),
+  ] %}
+  {% for title, text in rules %}
+  <div style="border-left:2px solid var(--accent); background:var(--panel); padding:16px 18px">
+    <div style="font-family:var(--serif); font-size:19px; margin-bottom:5px">{{ title }}</div>
+    <div class="muted" style="font-size:14.5px">{{ text }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="note">
+  No ads, no reach, no growth loop, no streaks, no “you haven’t posted in 3 days.”
+  If it makes you perform, it is not in here.
+</div>
+{% endblock %}

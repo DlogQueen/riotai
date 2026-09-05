@@ -1,0 +1,25 @@
+{% extends "real/base.html" %}
+{% block title %}Join RAW{% endblock %}
+{% block content %}
+<h1 class="page">Make a profile</h1>
+<div class="sub">Takes a minute. The honest part comes after.</div>
+
+<form method="post" style="max-width:420px">
+  <label class="field">Name <span>— whatever people actually call you</span></label>
+  <input type="text" name="display_name" maxlength="60" value="{{ request.form.display_name or '' }}">
+
+  <label class="field">Handle <span>— lowercase, 3–20 characters</span></label>
+  <input type="text" name="handle" maxlength="20" required value="{{ request.form.handle or '' }}">
+
+  <label class="field">Email</label>
+  <input type="email" name="email" required value="{{ request.form.email or '' }}">
+
+  <label class="field">Password <span>— at least 8 characters</span></label>
+  <input type="password" name="password" required>
+
+  <div style="margin-top:24px">
+    <button class="btn solid" type="submit">Join</button>
+    <a href="{{ url_for('real.login') }}" class="tiny muted" style="margin-left:14px">already here?</a>
+  </div>
+</form>
+{% endblock %}

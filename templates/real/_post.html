@@ -1,0 +1,59 @@
+{% macro render_post(p, REACTIONS, show_thread=True) %}
+{% set a = p.author %}
+<article class="post" id="p{{ p.id }}">
+  <div class="post-head">
+    <a class="avatar" href="{{ url_for('real.profile', handle=a.handle) }}"
+       style="background:{{ a.avatar_color }}">{{ (a.display_name or a.handle)[0]|upper }}</a>
+    <div class="who">
+      <a class="name" href="{{ url_for('real.profile', handle=a.handle) }}">{{ a.display_name or a.handle }}</a>
+      <span class="faint tiny">@{{ a.handle }}</span>
+      <div class="tiny muted" style="margin-top:3px">
+        <a href="{{ url_for('real.post_detail', post_id=p.id) }}" style="text-decoration:none">{{ p.created_at|ago }}</a>
+      </div>
+    </div>
+    <span class="state-chip" style="color:{{ p.state_meta.color }}; border-color:{{ p.state_meta.color }}">
+      {{ p.state_meta.emoji }} {{ p.state_meta.label }}
+    </span>
+  </div>
+
+  <div class="body">{{ p.body }}</div>
+
+  <div class="reactions">
+    {% for kind, r in REACTIONS.items() %}
+    <form class="inline" method="post" action="{{ url_for('real.react', post_id=p.id) }}">
+      <input type="hidden" name="kind" value="{{ kind }}">
+      <button class="react {% if kind in p.my_reactions %}on{% endif %}" type="submit"
+              title="{{ r.label }}">{{ r.emoji }} {{ r.label }}{%
+        if p.is_mine and p.reaction_counts.get(kind) %}<span class="n">{{ p.reaction_counts[kind] }}</span>{% endif %}</button>
+    </form>
+    {% endfor %}
+    {% if p.is_mine %}
+    <form class="inline" method="post" style="margin-left:auto"
+          action="{{ url_for('real.remove_post', post_id=p.id) }}"
+          onsubmit="return confirm('Delete this? It does not come back.')">
+      <button class="react" type="submit">delete</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if show_thread %}
+  <div class="thread">
+    {% for c in p.comments %}
+    <div class="cmt">
+      <a class="name tiny" href="{{ url_for('real.profile', handle=c.author.handle) }}">{{ c.author.display_name or c.author.handle }}</a>
+      <span class="faint tiny">{{ c.created_at|ago }}</span>
+      {% if c.is_mine %}
+      <form class="inline" method="post" action="{{ url_for('real.remove_comment', comment_id=c.id) }}">
+        <button class="linkbtn tiny" type="submit">delete</button>
+      </form>
+      {% endif %}
+      <div class="cmt-body">{{ c.body }}</div>
+    </div>
+    {% endfor %}
+    <form method="post" action="{{ url_for('real.comment', post_id=p.id) }}" style="margin-top:8px">
+      <input type="text" name="body" maxlength="600" placeholder="Say something true, or nothing.">
+    </form>
+  </div>
+  {% endif %}
+</article>
+{% endmacro %}

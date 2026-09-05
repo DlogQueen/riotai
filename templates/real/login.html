@@ -1,0 +1,18 @@
+{% extends "real/base.html" %}
+{% block title %}Log in · RAW{% endblock %}
+{% block content %}
+<h1 class="page">Log in</h1>
+<div class="sub">Welcome back to the unedited version.</div>
+
+<form method="post" style="max-width:380px">
+  <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+  <label class="field">Handle or email</label>
+  <input type="text" name="who" required autofocus>
+  <label class="field">Password</label>
+  <input type="password" name="password" required>
+  <div style="margin-top:24px">
+    <button class="btn solid" type="submit">Log in</button>
+    <a href="{{ url_for('real.join') }}" class="tiny muted" style="margin-left:14px">no account?</a>
+  </div>
+</form>
+{% endblock %}

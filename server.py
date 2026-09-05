@@ -61,6 +61,15 @@ if os.environ.get('OPENAI_MODEL'):
     config['models']['cloud']['model'] = os.environ['OPENAI_MODEL']
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY') or 'riot-dev-secret-change-me-in-prod'
+
+# RAW - the real-life social network, mounted at /real
+try:
+    from real_routes import real as real_blueprint
+    app.register_blueprint(real_blueprint)
+    print("🫀 [RAW] Real-life social network mounted at /real")
+except Exception as e:
+    print(f"⚠️  RAW social network not loaded: {e}")
 
 voice_engine = VoiceEngine(config['models']['cloud']['api_key']) if VOICE_VISION_AVAILABLE else None
 vision_engine = VisionEngine(config['models']['cloud']['api_key']) if VOICE_VISION_AVAILABLE else None
