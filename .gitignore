@@ -10,3 +10,6 @@ output.mp3
 *.mp3
 *.wav
 AppIcon.iconset/
+
+# android build output
+android/build/

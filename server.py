@@ -43,6 +43,7 @@ from database import (
     save_message, get_recent_messages, get_history,
     clear_history, count_messages
 )
+from ouija import SPIRITS, ask as ouija_ask
 from memory import (
     build_memory_context, save_memory, save_fact,
     extract_facts_from_message, save_session_summary, get_all_memories
@@ -170,6 +171,61 @@ def handle_tool_call(tool_name: str, tool_args: dict) -> str:
 @app.route('/')
 def index():
     return render_template('index.html', config=config)
+
+
+@app.route('/ouija')
+def ouija_board():
+    """The board. Don't play alone."""
+    return render_template('ouija.html', config=config, spirits=SPIRITS)
+
+
+@app.route('/sw.js')
+def ouija_service_worker():
+    """Served from root so the worker's scope covers the whole app."""
+    resp = send_file(BASE_DIR / 'static' / 'sw.js', mimetype='application/javascript')
+    resp.headers['Cache-Control'] = 'no-cache'
+    resp.headers['Service-Worker-Allowed'] = '/'
+    return resp
+
+
+@app.route('/manifest.webmanifest')
+def ouija_manifest():
+    return send_file(BASE_DIR / 'static' / 'manifest.webmanifest',
+                     mimetype='application/manifest+json')
+
+
+@app.route('/api/ouija/ask', methods=['POST'])
+def ouija_ask_route():
+    """Put a question to the apartment and wait for the planchette to move."""
+    data = request.json or {}
+    question = (data.get('question') or '').strip()
+    spirit = data.get('spirit', 'the_tenant')
+    dinner = bool(data.get('dinner'))
+
+    client = None
+    key = config['models']['cloud'].get('api_key', '')
+    if key and not key.startswith('SET_VIA_ENV'):
+        try:
+            client = get_client('cloud')
+        except Exception as e:
+            print(f"🕯️  [OUIJA] no line to the other side: {e}")
+
+    result = ouija_ask(
+        question,
+        spirit,
+        client=client,
+        model=config['models']['cloud']['model'],
+        dinner=dinner,
+    )
+
+    try:
+        save_message('user', f"[OUIJA] {question}", 'raven', 'cloud', 'neutral')
+        save_message('assistant', f"[{result['spirit']}] {result['answer']}",
+                     'raven', 'cloud', 'neutral')
+    except Exception:
+        pass  # the board doesn't need the database to work
+
+    return jsonify(result)
 
 
 @app.route('/api/chat/stream', methods=['POST'])
@@ -491,5 +547,6 @@ def twilio_respond():
 
 if __name__ == '__main__':
     print("🚀 Starting on http://localhost:5001")
+    print("🕯️  Ouija board: http://localhost:5001/ouija")
     print("🖤 Break rules. Build empires. Stay punk. ⚡")
     app.run(host='0.0.0.0', port=5001, debug=False, threaded=True)
