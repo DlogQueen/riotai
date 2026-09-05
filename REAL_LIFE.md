@@ -36,7 +36,10 @@ SQLite locally (`real_life.db`, gitignored). Set `SUPABASE_URL` and
 `real_schema.sql` in the SQL editor first.
 
 **Set `SECRET_KEY` in production.** Sessions are signed with it; the built-in
-development fallback is not a secret.
+development fallback is not a secret. Add it as a plain environment variable in
+your host's project settings (on Vercel: Settings → Environment Variables) —
+deliberately not wired into `vercel.json`, since an `@secret` reference there
+fails the deploy until the secret exists.
 
 ## The map
 
