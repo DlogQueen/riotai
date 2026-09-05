@@ -1,10 +1,11 @@
-# RAW — social media for actual life
+# In the Raw — social media for actual life
 
 Everyone else is having a great week. They are not.
 
-RAW is a full social network — accounts, profiles, feeds, following, posting,
+In the Raw is a full social network — accounts, profiles, feeds, following, posting,
 commenting, reacting — built for the part of life that does not photograph well.
-It runs inside this project at **`/real`**.
+It runs inside this project at **`/real`**, and as an Android app in
+`android/` (see `android/README.md`).
 
 ## The rules, which are the product
 

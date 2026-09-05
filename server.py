@@ -77,13 +77,13 @@ if not str(config['models'][_default].get('api_key', '')).startswith(('sk-', 'gs
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY') or 'riot-dev-secret-change-me-in-prod'
 
-# RAW - the real-life social network, mounted at /real
+# In the Raw - the real-life social network, mounted at /real
 try:
     from real_routes import real as real_blueprint
     app.register_blueprint(real_blueprint)
-    print("🫀 [RAW] Real-life social network mounted at /real")
+    print("🫀 [InTheRaw] Real-life social network mounted at /real")
 except Exception as e:
-    print(f"⚠️  RAW social network not loaded: {e}")
+    print(f"⚠️  In the Raw social network not loaded: {e}")
 
 voice_engine = VoiceEngine(config['models']['cloud']['api_key']) if VOICE_VISION_AVAILABLE else None
 vision_engine = VisionEngine(config['models']['cloud']['api_key']) if VOICE_VISION_AVAILABLE else None

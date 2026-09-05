@@ -1,5 +1,5 @@
 """
-RAW - Data layer for the real-life social network.
+In the Raw - Data layer for the real-life social network.
 
 Same deal as database.py: Supabase in production, SQLite locally.
 Tables are prefixed `real_` so they can share a Supabase project with RIOT AI.
@@ -18,10 +18,10 @@ USE_SUPABASE = bool(SUPABASE_URL and SUPABASE_KEY)
 if USE_SUPABASE:
     from supabase import create_client
     _client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    print("🗄️  [RAW] Connected to Supabase")
+    print("🗄️  [InTheRaw] Connected to Supabase")
 else:
     _client = None
-    print("🗄️  [RAW] Using local SQLite")
+    print("🗄️  [InTheRaw] Using local SQLite")
 
 DB_FILE = Path(__file__).parent / "real_life.db"
 

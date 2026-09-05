@@ -1,5 +1,5 @@
 """
-RAW - social media for actual life.
+In the Raw - social media for actual life.
 
 The whole point, stated once so it doesn't get lost:
 

@@ -29,6 +29,84 @@ const PROMPTS = [
 ];
 const PALETTE = ['#e08a6f','#7fc79a','#7d8fb3','#c48fbb','#e3c778','#8fc0d4','#c2a878'];
 
+
+/* ── photos ───────────────────────────────────────────────────────────────────
+   Pictures are the point of a real profile, but base64 in localStorage fills a
+   5MB quota in a handful of posts. Blobs live in IndexedDB instead; the model
+   only ever holds an id. Every photo is downscaled on the way in — no filters,
+   no beautifying, just enough resizing that a 12MP camera file is storable. */
+
+const PHOTO_DB = 'raw.photos';
+let idb = null, photoURLs = {};
+
+function openPhotos(){
+  return new Promise(res => {
+    let req;
+    try { req = indexedDB.open(PHOTO_DB, 1); } catch(e){ return res(null); }
+    req.onupgradeneeded = () => req.result.createObjectStore('photos', {keyPath:'id'});
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => res(null);
+  });
+}
+
+function loadPhotoURLs(){
+  return new Promise(res => {
+    if(!idb) return res();
+    let tx;
+    try { tx = idb.transaction('photos','readonly'); } catch(e){ return res(); }
+    const cur = tx.objectStore('photos').openCursor();
+    cur.onsuccess = () => {
+      const c = cur.result;
+      if(!c) return res();
+      try { photoURLs[c.value.id] = URL.createObjectURL(c.value.blob); } catch(e){}
+      c.continue();
+    };
+    cur.onerror = () => res();
+  });
+}
+
+/* Downscale to `max` on the long edge and re-encode. Returns a Blob. */
+function shrink(file, max){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? res(b) : rej(new Error('encode failed')), 'image/jpeg', 0.72);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('not an image')); };
+    img.src = url;
+  });
+}
+
+async function putPhoto(file, max){
+  const blob = await shrink(file, max || 1280);
+  const pid = 'p' + Date.now() + Math.random().toString(36).slice(2,7);
+  if(idb){
+    await new Promise(res => {
+      const tx = idb.transaction('photos','readwrite');
+      tx.objectStore('photos').put({id:pid, blob});
+      tx.oncomplete = res; tx.onerror = res; tx.onabort = res;
+    });
+  }
+  photoURLs[pid] = URL.createObjectURL(blob);
+  return pid;
+}
+
+function dropPhoto(pid){
+  if(!pid) return;
+  if(photoURLs[pid]){ try{ URL.revokeObjectURL(photoURLs[pid]); }catch(e){} delete photoURLs[pid]; }
+  if(idb){
+    try { idb.transaction('photos','readwrite').objectStore('photos').delete(pid); } catch(e){}
+  }
+}
+
+const photoSrc = pid => (pid && photoURLs[pid]) || null;
+
 /* ── store ────────────────────────────────────────────────────── */
 const KEY = 'raw.v1';
 let db, me = null, tab = 'feed', view = null;
@@ -97,7 +175,12 @@ function toast(msg){
   clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 2200);
 }
 function initial(u){ return (u.name||u.handle||'?')[0].toUpperCase(); }
-function pfp(u,cls){ return `<div class="pfp ${cls||''}" style="background:${u.color}">${initial(u)}</div>`; }
+function pfp(u,cls){
+  const src = photoSrc(u.photo);
+  return src
+    ? `<div class="pfp ${cls||''}" style="background:${u.color}"><img src="${src}" alt=""></div>`
+    : `<div class="pfp ${cls||''}" style="background:${u.color}">${initial(u)}</div>`;
+}
 
 /* ── post card ────────────────────────────────────────────────── */
 function postCard(p, opts){
@@ -129,6 +212,7 @@ function postCard(p, opts){
       <b data-go="u:${u.handle}">${esc(u.name)}</b>
       <span class="st">${s.emoji} ${s.label}</span>
     </div>
+    ${photoSrc(p.photo) ? `<div class="shot"><img src="${photoSrc(p.photo)}" alt=""></div>` : ''}
     <p class="txt ${long?'long':''}">${esc(p.body)}</p>
     <div class="when">${ago(p.at)}${cs.length?` · ${cs.length} ${cs.length===1?'reply':'replies'}`:''}</div>
     <div class="rx">${pills}</div>
@@ -221,7 +305,7 @@ function profileScreen(handle){
     </div>`, mine?'you':'people');
 }
 
-let draftState = 'mundane';
+let draftState = 'mundane', draftPhoto = null, draftBody = '';
 function composeScreen(){
   const prompt = PROMPTS[new Date().getDate() % PROMPTS.length];
   return `<div class="top"><div class="mark">R</div>
@@ -230,10 +314,15 @@ function composeScreen(){
       <div class="h1">Post it</div>
       <div class="sub">${prompt}</div>
       <textarea class="inp" id="body" rows="7" maxlength="1200"
-        placeholder="No filter, no caption voice. Just what is happening."></textarea>
+        placeholder="No filter, no caption voice. Just what is happening.">${esc(draftBody)}</textarea>
       <div class="states">${Object.entries(STATES).map(([k,s])=>
         `<button data-st="${k}" class="${k===draftState?'on':''}"
           style="${k===draftState?`background:${s.c};border-color:${s.c}`:''}">${s.emoji} ${s.label}</button>`).join('')}</div>
+      ${photoSrc(draftPhoto)
+        ? `<div class="pick"><img src="${photoSrc(draftPhoto)}" alt="">
+             <button class="pick-x" id="unpick">Remove photo</button></div>`
+        : `<label class="pick-btn">Add a photo
+             <input type="file" accept="image/*" id="postpic" hidden></label>`}
       <button class="solid-btn" id="send">Post it</button>
       <div class="sub" style="margin-top:14px;font-size:12.5px;color:var(--faint)">
         You can delete this later. You cannot edit it.</div>
@@ -249,6 +338,18 @@ function settingsScreen(){
     <div class="pad">
       <div class="h1">Your profile</div>
       <div class="sub">Answer what you want. Blank is an honest answer too.</div>
+      <label class="field">Profile picture</label>
+      <div class="avatar-row">
+        ${photoSrc(me.photo)
+          ? `<div class="pfp lg" style="background:${me.color}"><img src="${photoSrc(me.photo)}" alt=""></div>`
+          : `<div class="pfp lg" style="background:${me.color}">${initial(me)}</div>`}
+        <div>
+          <label class="pick-btn sm">${me.photo?'Change':'Choose a photo'}
+            <input type="file" accept="image/*" id="avatarpic" hidden></label>
+          ${me.photo?`<button class="pick-x sm" id="unavatar">Remove</button>`:''}
+          <div class="tiny faint" style="margin-top:8px">No filters. That is the point.</div>
+        </div>
+      </div>
       ${f('Name','name',me.name)}
       ${f('Pronouns','pronouns',me.pronouns)}
       ${f('Where you are','loc',me.loc)}
@@ -288,9 +389,9 @@ function authScreen(err){
     <input class="inp" id="a_pass" type="password">
     ${err?`<div class="err">${esc(err)}</div>`:''}
     <button class="grad-btn" data-auth="go"><span>${up?'Create it':'Sign In'} →</span></button>
-    <div class="or">or continue with</div>
-    <div class="socials"><div>G</div><div>◎</div><div>𝕏</div><div>♪</div></div>
     <div class="swap" data-auth="swap">${up?'Already here? <b>Sign in</b>':'No account? <b>Make one</b>'}</div>
+    <div class="or">No Google, no Apple, no Facebook. Signing in with them tells them
+      you were here, and this is not a place that reports back.</div>
   </div>`;
 }
 
@@ -322,7 +423,10 @@ function render(){
 
 /* ── actions ──────────────────────────────────────────────────── */
 function go(dest){
-  if(dest === 'back'){ view = null; render(); return; }
+  if(dest === 'back'){
+    if(view && view.name === 'compose'){ dropPhoto(draftPhoto); draftPhoto = null; draftBody = ''; }
+    view = null; render(); return;
+  }
   if(dest === 'compose'){ view = {name:'compose'}; render(); return; }
   if(dest === 'settings'){ view = {name:'settings'}; render(); return; }
   if(dest === 'people'){ view = null; tab = 'people'; render(); return; }
@@ -341,7 +445,7 @@ function doAuth(){
     if(!who.includes('@')) return fail('That email does not look like an email.');
     if(pass.length < 8) return fail('Password needs at least 8 characters.');
     me = {id:id(),handle,name:name||handle,email:who,pass,state:'mundane',color:colorFor(handle),
-          bio:'',dealing:'',okay:'',bad:'',pronouns:'',loc:'',joined:now()};
+          bio:'',dealing:'',okay:'',bad:'',pronouns:'',loc:'',photo:null,joined:now()};
     db.users.push(me); save();
     localStorage.setItem(KEY+'.me', me.id); authDraft = {name:'',handle:'',who:''};
     view = {name:'settings'}; render(); toast('Welcome. Tell us the real version.'); return;
@@ -353,15 +457,16 @@ function doAuth(){
 function fail(msg){ view = {err:msg}; render(); }
 
 function post(){
-  const body = el('body').value.trim();
+  const body = (el('body') ? el('body').value : draftBody).trim();
   if(!body) return toast('Nothing to say is fine. Blank posts are not.');
-  db.posts.push({id:id(),user:me.id,body,state:draftState,at:now()});
+  db.posts.push({id:id(),user:me.id,body,state:draftState,at:now(),photo:draftPhoto});
   me.state = draftState;            // your profile follows your last post
+  draftPhoto = null; draftBody = '';
   save(); view = null; tab='feed'; render(); toast('Posted. You can delete it, not edit it.');
 }
 
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-go],[data-tab],[data-rx],[data-csend],[data-fol],[data-del],[data-st],[data-st2],[data-auth],#send,#savep,#logout');
+  const t = e.target.closest('[data-go],[data-tab],[data-rx],[data-csend],[data-fol],[data-del],[data-st],[data-st2],[data-auth],#send,#savep,#logout,#unpick,#unavatar');
   if(!t) return;
 
   if(t.dataset.auth){
@@ -395,13 +500,17 @@ document.addEventListener('click', e => {
   }
   if(t.dataset.del){
     const p = +t.dataset.del;
+    const gone = db.posts.find(x=>x.id===p);
+    if(gone) dropPhoto(gone.photo);
     db.posts = db.posts.filter(x=>x.id!==p);
     db.comments = db.comments.filter(c=>c.post!==p);
     db.reactions = db.reactions.filter(r=>r.post!==p);
     save(); render(); toast('Deleted. That is different from editing.'); return;
   }
-  if(t.dataset.st){ draftState = t.dataset.st; const v=el('body').value; render(); el('body').value=v; return; }
+  if(t.dataset.st){ draftState = t.dataset.st; render(); return; }
   if(t.dataset.st2){ me.state = t.dataset.st2; save(); render(); return; }
+  if(t.id === 'unpick'){ dropPhoto(draftPhoto); draftPhoto = null; render(); return; }
+  if(t.id === 'unavatar'){ dropPhoto(me.photo); me.photo = null; save(); render(); return; }
   if(t.id === 'send') return post();
   if(t.id === 'savep'){
     document.querySelectorAll('[data-f]').forEach(i => me[i.dataset.f] = i.value.trim());
@@ -409,6 +518,33 @@ document.addEventListener('click', e => {
     save(); view = null; tab='you'; render(); toast('Profile saved.'); return;
   }
   if(t.id === 'logout'){ me=null; localStorage.removeItem(KEY+'.me'); view=null; render(); }
+});
+
+document.addEventListener('input', e => {
+  if(e.target.id === 'body') draftBody = e.target.value;
+});
+
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if(t.id !== 'avatarpic' && t.id !== 'postpic') return;
+  const file = t.files && t.files[0];
+  if(!file) return;
+  if(!/^image\//.test(file.type)) return toast('That is not an image.');
+  toast('Adding the photo…');
+  try {
+    if(t.id === 'avatarpic'){
+      const old = me.photo;
+      me.photo = await putPhoto(file, 512);
+      dropPhoto(old);
+      save();
+    } else {
+      dropPhoto(draftPhoto);
+      draftPhoto = await putPhoto(file, 1280);
+    }
+    render();
+  } catch(err){
+    toast('Could not read that image.');
+  }
 });
 
 document.addEventListener('keydown', e => {
@@ -426,7 +562,11 @@ window.rawBack = function(){
   return false;
 };
 
-load();
-const savedId = +localStorage.getItem(KEY+'.me');
-if(savedId){ const u = user(savedId); if(u && u.pass) me = u; }
-render();
+(async function boot(){
+  idb = await openPhotos();
+  await loadPhotoURLs();
+  load();
+  const savedId = +localStorage.getItem(KEY+'.me');
+  if(savedId){ const u = user(savedId); if(u && u.pass) me = u; }
+  render();
+})();

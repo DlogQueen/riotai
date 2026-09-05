@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}RAW{% endblock %}</title>
+<title>{% block title %}In the Raw{% endblock %}</title>
 <style>
   :root{
     --ink:#e8e3dc; --ink-dim:#9a938a; --ink-faint:#6b655e;
@@ -28,7 +28,7 @@
     backdrop-filter:blur(8px); position:sticky; top:0; z-index:20;
   }
   .top-in{max-width:660px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; gap:14px}
-  .brand{font-family:var(--serif); font-size:22px; letter-spacing:.14em; text-decoration:none; font-weight:700}
+  .brand{font-family:var(--serif); font-size:19px; letter-spacing:.1em; text-decoration:none; font-weight:700}
   .brand b{color:var(--accent)}
   .brand small{display:block; font-family:var(--sans); font-size:9.5px; letter-spacing:.22em;
     color:var(--ink-faint); text-transform:uppercase; margin-top:-2px}
@@ -105,7 +105,7 @@
 <header class="top">
   <div class="top-in">
     <a class="brand" href="{{ url_for('real.feed') if me else url_for('real.landing') }}">
-      RA<b>W</b><small>real life only</small>
+      IN THE <b>RAW</b><small>real life only</small>
     </a>
     {% if me %}
     <nav class="top-nav">

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Build RAW.apk without Gradle: aapt2 -> javac -> d8 -> zipalign -> apksigner.
+# Build InTheRaw.apk without Gradle: aapt2 -> javac -> d8 -> zipalign -> apksigner.
 # The app has no third-party dependencies, so there is nothing to resolve and
 # the build stays fast and offline after the SDK is present.
 set -euo pipefail
 
 : "${ANDROID_HOME:?set ANDROID_HOME to your Android SDK root}"
-BT="$ANDROID_HOME/build-tools/34.0.0"
+# build-tools 34.0.0 ships a d8 that fails to dex non-static inner classes and
+# classes implementing a generic interface. 35.0.0 fixes both.
+BT="$ANDROID_HOME/build-tools/35.0.0"
 JAR="$ANDROID_HOME/platforms/android-34/android.jar"
 
 cd "$(dirname "$0")"
@@ -39,14 +41,14 @@ cp "$OUT/base.apk" "$OUT/unsigned.apk"
 
 if [ ! -f raw-keystore.jks ]; then
   echo "==> keystore"
-  keytool -genkeypair -keystore raw-keystore.jks -alias raw -keyalg RSA -keysize 2048 \
+  keytool -genkeypair -keystore raw-keystore.jks -alias intheraw -keyalg RSA -keysize 2048 \
     -validity 10000 -storepass rawrawraw -keypass rawrawraw \
-    -dname "CN=RAW, OU=riotai, O=RAW, L=, S=, C=US" >/dev/null 2>&1
+    -dname "CN=In the Raw, OU=riotai, O=In the Raw, L=, S=, C=US" >/dev/null 2>&1
 fi
 
-"$BT/zipalign" -f 4 "$OUT/unsigned.apk" "$OUT/RAW.apk"
+"$BT/zipalign" -f 4 "$OUT/unsigned.apk" "$OUT/InTheRaw.apk"
 "$BT/apksigner" sign --ks raw-keystore.jks --ks-pass pass:rawrawraw --key-pass pass:rawrawraw \
-  --v1-signing-enabled true --v2-signing-enabled true "$OUT/RAW.apk"
-"$BT/apksigner" verify "$OUT/RAW.apk" && echo "==> signature OK"
+  --v1-signing-enabled true --v2-signing-enabled true "$OUT/InTheRaw.apk"
+"$BT/apksigner" verify "$OUT/InTheRaw.apk" && echo "==> signature OK"
 
-ls -lh "$OUT/RAW.apk"
+ls -lh "$OUT/InTheRaw.apk"

@@ -1,4 +1,4 @@
--- RAW - social media for actual life
+-- In the Raw - social media for actual life
 -- Run this in your Supabase SQL editor once, alongside supabase_schema.sql.
 -- Tables are prefixed `real_` so RAW and RIOT AI can share one project.
 

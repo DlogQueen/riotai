@@ -235,3 +235,29 @@ textarea.inp{resize:none;line-height:1.4}
   transition:opacity .2s,transform .2s;pointer-events:none;max-width:82%;text-align:center;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── photos ───────────────────────────────────────────────── */
+.pfp{overflow:hidden}
+.pfp img{width:100%;height:100%;object-fit:cover;display:block}
+.shot{
+  margin:14px 0 0;border-radius:18px;overflow:hidden;position:relative;z-index:1;
+  background:rgba(0,0,0,.25);max-height:420px;
+}
+.shot img{width:100%;display:block;object-fit:cover;max-height:420px}
+.pick-btn{
+  display:inline-block;margin-top:16px;background:#181818;border:1.5px dashed #3a3a3a;
+  border-radius:var(--r-sm);padding:14px 18px;font-size:14px;font-weight:600;
+  color:var(--dim);cursor:pointer;
+}
+.pick-btn.sm{margin-top:0;padding:10px 14px;font-size:13px}
+.pick-btn:active{border-color:var(--accent);color:#fff}
+.pick{margin-top:16px;position:relative;border-radius:18px;overflow:hidden}
+.pick img{width:100%;display:block;max-height:300px;object-fit:cover}
+.pick-x{
+  position:absolute;top:10px;right:10px;background:rgba(0,0,0,.78);color:#fff;
+  border-radius:20px;padding:8px 14px;font-size:12.5px;font-weight:600;
+}
+.pick-x.sm{position:static;display:inline-block;margin-left:8px;background:#181818;color:var(--dim)}
+.avatar-row{display:flex;gap:16px;align-items:center;margin-top:4px}
+.auth .or{margin-top:26px;font-size:12.5px;line-height:1.6;color:var(--faint);
+  text-align:center;max-width:34ch;margin-left:auto;margin-right:auto}

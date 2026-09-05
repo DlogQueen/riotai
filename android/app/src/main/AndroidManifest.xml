@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.riot.raw"
+    package="com.intheraw.app"
     android:versionCode="1"
     android:versionName="1.0">
 
     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
 
-    <!-- No INTERNET permission on purpose: nothing written here leaves the phone. -->
+    <!-- No INTERNET permission on purpose: nothing written here, photos included,
+         ever leaves the phone. -->
 
     <application
-        android:label="RAW"
+        android:label="In the Raw"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
-        android:theme="@style/RawTheme"
+        android:theme="@style/InTheRawTheme"
         android:hardwareAccelerated="true"
         android:allowBackup="false">
 
