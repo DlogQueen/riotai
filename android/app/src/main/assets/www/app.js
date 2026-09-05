@@ -7,12 +7,12 @@ const STATES = {
   rough:     {label:'rough day',       emoji:'🌧', c:'#46577d', l:'#a8b6d6'},
   grinding:  {label:'grinding',        emoji:'⚙️', c:'#6d5733', l:'#d6c093'},
   mundane:   {label:'nothing special', emoji:'🥣', c:'#4a6650', l:'#a8c4ae'},
-  small_win: {label:'small win',       emoji:'🌱', c:'#2f7a55', l:'#8ed6ae'},
+  small_win: {label:'small win',       emoji:'🌱', c:'#276548', l:'#8ed6ae'},
   spiraling: {label:'spiraling',       emoji:'🌀', c:'#71386b', l:'#d3a4cd'},
   healing:   {label:'healing',         emoji:'🩹', c:'#2c6377', l:'#9ccfe0'},
   angry:     {label:'angry',           emoji:'🔥', c:'#a03f28', l:'#f0a58c'},
-  numb:      {label:'numb',            emoji:'🌫', c:'#4f4f5c', l:'#b4b4c2'},
-  okay:      {label:'okay, actually',  emoji:'☀️', c:'#8d6f24', l:'#ecd18a'},
+  numb:      {label:'numb',            emoji:'🌫', c:'#4a4a5e', l:'#bcbccb'},
+  okay:      {label:'okay, actually',  emoji:'☀️', c:'#755a17', l:'#ecd18a'},
 };
 const REACTIONS = {
   been_there:{label:'been there', emoji:'🫱'},
@@ -110,6 +110,7 @@ const photoSrc = pid => (pid && photoURLs[pid]) || null;
 /* ── store ────────────────────────────────────────────────────── */
 const KEY = 'raw.v1';
 let db, me = null, tab = 'feed', view = null;
+let openThreads = new Set();   // posts whose replies are expanded
 
 function blank(){ return {users:[],posts:[],comments:[],reactions:[],follows:[],seq:1}; }
 function load(){
@@ -197,7 +198,8 @@ function postCard(p, opts){
     return `<button class="${on?'on':''}" data-rx="${p.id}" data-kind="${k}">${r.emoji} ${r.label}${n?` <span class="n">${n}</span>`:''}</button>`;
   }).join('');
 
-  const thread = opts.thread === false ? '' : `
+  const open = opts.thread === 'always' || openThreads.has(p.id);
+  const thread = !open ? '' : `
     <div class="thread">
       ${cs.map(c=>{const cu=user(c.user);return `<div class="cmt"><b>${esc(cu?cu.name:'—')}</b> · ${ago(c.at)}<span>${esc(c.body)}</span></div>`;}).join('')}
       <div class="cbox">
@@ -212,9 +214,11 @@ function postCard(p, opts){
       <b data-go="u:${u.handle}">${esc(u.name)}</b>
       <span class="st">${s.emoji} ${s.label}</span>
     </div>
-    ${photoSrc(p.photo) ? `<div class="shot"><img src="${photoSrc(p.photo)}" alt=""></div>` : ''}
     <p class="txt ${long?'long':''}">${esc(p.body)}</p>
-    <div class="when">${ago(p.at)}${cs.length?` · ${cs.length} ${cs.length===1?'reply':'replies'}`:''}</div>
+    ${photoSrc(p.photo) ? `<div class="shot"><img src="${photoSrc(p.photo)}" alt="" loading="lazy"></div>` : ''}
+    <button class="when" data-thread="${p.id}">${ago(p.at)} ·
+      ${cs.length ? `${cs.length} ${cs.length===1?'reply':'replies'}` : 'reply'}
+      <span class="chev">${open?'▾':'▸'}</span></button>
     <div class="rx">${pills}</div>
     ${mine?`<div class="acts"><button data-del="${p.id}">Delete — you cannot edit it</button></div>`:''}
     ${thread}
@@ -223,21 +227,23 @@ function postCard(p, opts){
 
 /* ── screens ──────────────────────────────────────────────────── */
 function chrome(body, activeTab){
-  const unseen = me ? newest(db.posts).filter(p=>p.user!==me.id).length : 0;
+  const seen = +(localStorage.getItem(KEY+'.seen') || 0);
+  const unseen = me ? db.posts.filter(p => p.user!==me.id && new Date(p.at).getTime() > seen).length : 0;
   return `
   <div class="top">
     <div class="mark">R</div>
     <div class="circ" data-go="people">🔍</div>
     <div class="spacer"></div>
     <div class="circ" data-go="settings">⚙</div>
-    <div class="circ">🔔${unseen?`<span class="dot">${unseen>99?'99+':unseen}</span>`:''}</div>
+    <div class="circ" data-go="unseen">🔔${unseen?`<span class="dot">${unseen>99?'99+':unseen}</span>`:''}</div>
   </div>${body}`;
 }
 
 function feedScreen(all){
   const ids = all ? null : [...following(me.id), me.id];
   const posts = newest(all ? db.posts : db.posts.filter(p=>ids.includes(p.user)));
-  const rail = newest(db.posts).reduce((acc,p)=>{ if(!acc.some(x=>x.user===p.user)) acc.push(p); return acc; },[])
+  const railPool = all ? db.posts : db.posts.filter(p=>ids.includes(p.user));
+  const rail = newest(railPool).reduce((acc,p)=>{ if(!acc.some(x=>x.user===p.user)) acc.push(p); return acc; },[])
     .slice(0,10).map(p=>{
       const u=user(p.user), s=STATES[u.state]||STATES.mundane;
       return `<div class="rail-item" data-go="u:${u.handle}">
@@ -314,7 +320,7 @@ function composeScreen(){
       <div class="h1">Post it</div>
       <div class="sub">${prompt}</div>
       <textarea class="inp" id="body" rows="7" maxlength="1200"
-        placeholder="No filter, no caption voice. Just what is happening.">${esc(draftBody)}</textarea>
+        placeholder="No filter, no caption voice. Just what is happening."></textarea>
       <div class="states">${Object.entries(STATES).map(([k,s])=>
         `<button data-st="${k}" class="${k===draftState?'on':''}"
           style="${k===draftState?`background:${s.c};border-color:${s.c}`:''}">${s.emoji} ${s.label}</button>`).join('')}</div>
@@ -329,7 +335,9 @@ function composeScreen(){
     </div>`;
 }
 
+let settingsState = null;   // pending state pick, applied on Save
 function settingsScreen(){
+  const curState = settingsState || me.state;
   const f = (l,k,v,ta) => `<label class="field">${l}</label>${
     ta ? `<textarea class="inp" rows="3" maxlength="400" data-f="${k}">${esc(v||'')}</textarea>`
        : `<input class="inp" maxlength="60" data-f="${k}" value="${esc(v||'')}">`}`;
@@ -359,14 +367,14 @@ function settingsScreen(){
       ${f('What you are bad at','bad',me.bad,1)}
       <label class="field">Where you are at right now</label>
       <div class="states">${Object.entries(STATES).map(([k,s])=>
-        `<button data-st2="${k}" class="${k===me.state?'on':''}"
-          style="${k===me.state?`background:${s.c};border-color:${s.c}`:''}">${s.emoji} ${s.label}</button>`).join('')}</div>
+        `<button data-st2="${k}" class="${k===curState?'on':''}"
+          style="${k===curState?`background:${s.c};border-color:${s.c}`:''}">${s.emoji} ${s.label}</button>`).join('')}</div>
       <button class="solid-btn" id="savep">Save</button>
       <button class="ghost-btn" id="logout">Sign out</button>
     </div>`;
 }
 
-let authMode = 'in', authDraft = {name:'',handle:'',who:''};
+let authMode = 'in';
 function authScreen(err){
   const up = authMode === 'up';
   return `<div class="auth">
@@ -380,11 +388,11 @@ function authScreen(err){
       <path d="M0 46 C 60 8, 110 66, 168 34 S 268 6, 320 22" fill="none"
         stroke="#e0533a" stroke-width="2.5" stroke-linecap="round"/></svg>
     ${up?`<label class="field">Name</label>
-          <input class="inp" id="a_name" autocapitalize="words" value="${esc(authDraft.name)}">
+          <input class="inp" id="a_name" maxlength="60" autocapitalize="words">
           <label class="field">Handle</label>
-          <input class="inp" id="a_handle" autocapitalize="none" placeholder="lowercase, 3–20" value="${esc(authDraft.handle)}">`:''}
+          <input class="inp" id="a_handle" maxlength="20" autocapitalize="none" placeholder="lowercase, 3–20">`:''}
     <label class="field">${up?'Email':'Handle or email'}</label>
-    <input class="inp" id="a_who" autocapitalize="none" ${up?'type="email"':''} value="${esc(authDraft.who)}">
+    <input class="inp" id="a_who" maxlength="120" autocapitalize="none" ${up?'type="email"':''}>
     <label class="field">Password</label>
     <input class="inp" id="a_pass" type="password">
     ${err?`<div class="err">${esc(err)}</div>`:''}
@@ -396,58 +404,115 @@ function authScreen(err){
 }
 
 /* ── render ───────────────────────────────────────────────────── */
+const ICON = {
+  feed:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/>',
+  everyone:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/>',
+  people:'<circle cx="9" cy="8" r="3.4"/><path d="M3 20c0-3.4 2.7-5.6 6-5.6s6 2.2 6 5.6"/><path d="M16 5.2a3.4 3.4 0 0 1 0 6.6"/><path d="M17.6 14.8c2 .7 3.4 2.4 3.4 5.2"/>',
+  you:'<circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c0-3.7 3.2-6 7.2-6s7.2 2.3 7.2 6"/>',
+};
 function nav(active){
-  const items = [['feed','⌂','Feed'],['everyone','◎','Everyone'],['people','◍','People'],['you','☺','You']];
-  return `<div class="nav">${items.map(([k,i,l])=>
-    `<button data-tab="${k}" class="${k===active?'on':''}"><i>${i}</i>${l}</button>`).join('')}</div>
+  const items = [['feed','Feed'],['everyone','Everyone'],['people','People'],['you','You']];
+  return `<div class="nav">${items.map(([k,l])=>
+    `<button data-tab="${k}" class="${k===active?'on':''}">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>${l}</button>`).join('')}</div>
     <div class="fabs">
       <div class="fab primary" data-go="compose">＋</div>
     </div>`;
 }
 
-function render(){
+/* Which screen we are on. Re-rendering the same screen keeps what the DOM held;
+   moving to a different one starts clean at the top. */
+function screenId(){
+  if(!me) return 'auth';
+  if(view) return view.name + (view.handle || '');
+  return tab;
+}
+
+/* A stable key per input, so a value can find its way back to the same field. */
+function fieldKey(i){
+  if(i.id) return 'id:' + i.id;
+  if(i.dataset.cin) return 'cin:' + i.dataset.cin;   // a comment box, per post
+  if(i.dataset.f) return 'f:' + i.dataset.f;         // a profile field
+  return null;
+}
+
+function snapshot(){
+  const vals = {};
+  document.querySelectorAll('#screen input, #screen textarea').forEach(i => {
+    const k = fieldKey(i);
+    if(k && i.value !== '') vals[k] = i.value;
+  });
+  return {id: screenId(), scroll: el('screen').scrollTop, vals};
+}
+
+function restore(snap){
   const s = el('screen');
-  if(!me){ s.innerHTML = authScreen(view && view.err); s.scrollTop = 0; return; }
-  if(view && view.name === 'compose'){ s.innerHTML = composeScreen(); s.scrollTop=0; return; }
-  if(view && view.name === 'settings'){ s.innerHTML = settingsScreen(); s.scrollTop=0; return; }
+  if(snap.id !== screenId()){ s.scrollTop = 0; return; }
+  // What the person typed wins over what the model would have rendered: the
+  // settings fields come back pre-filled from storage, and an edit in progress
+  // must survive a re-render rather than being reset to the saved value.
+  document.querySelectorAll('#screen input, #screen textarea').forEach(i => {
+    const k = fieldKey(i);
+    if(k && snap.vals[k] !== undefined) i.value = snap.vals[k];
+  });
+  s.scrollTop = snap.scroll;
+}
 
-  let body, active = tab;
-  if(view && view.name === 'profile'){ body = profileScreen(view.handle); active = view.handle===me.handle?'you':'people'; }
-  else if(tab === 'people') body = peopleScreen();
-  else if(tab === 'you') { body = profileScreen(me.handle); }
-  else body = feedScreen(tab === 'everyone');
+function render(){
+  const s = el('screen'), snap = snapshot();
 
-  s.innerHTML = body + nav(active);
-  s.scrollTop = 0;
+  const hasNav = !!me && !(view && (view.name === 'compose' || view.name === 'settings'));
+  document.body.classList.toggle('has-nav', hasNav);
+
+  if(!me){ s.innerHTML = authScreen(view && view.err); }
+  else if(view && view.name === 'compose'){ s.innerHTML = composeScreen(); }
+  else if(view && view.name === 'settings'){ s.innerHTML = settingsScreen(); }
+  else {
+    let body, active = tab;
+    if(view && view.name === 'profile'){ body = profileScreen(view.handle); active = view.handle===me.handle?'you':'people'; }
+    else if(tab === 'people') body = peopleScreen();
+    else if(tab === 'you') body = profileScreen(me.handle);
+    else body = feedScreen(tab === 'everyone');
+    s.innerHTML = body + nav(active);
+  }
+
+  restore(snap);
 }
 
 /* ── actions ──────────────────────────────────────────────────── */
 function go(dest){
   if(dest === 'back'){
     if(view && view.name === 'compose'){ dropPhoto(draftPhoto); draftPhoto = null; draftBody = ''; }
+    settingsState = null;
     view = null; render(); return;
   }
   if(dest === 'compose'){ view = {name:'compose'}; render(); return; }
   if(dest === 'settings'){ view = {name:'settings'}; render(); return; }
   if(dest === 'people'){ view = null; tab = 'people'; render(); return; }
+  if(dest === 'unseen'){
+    try { localStorage.setItem(KEY+'.seen', Date.now()); } catch(e){}
+    view = null; tab = 'everyone'; render(); return;
+  }
   if(dest.startsWith('u:')){ view = {name:'profile',handle:dest.slice(2)}; render(); return; }
 }
 
 function doAuth(){
   const pass = el('a_pass').value, who = el('a_who').value.trim().toLowerCase();
   const nameEl = el('a_name'), handleEl = el('a_handle');
-  authDraft = {who, name:nameEl?nameEl.value:'', handle:handleEl?handleEl.value:''};
   if(authMode === 'up'){
-    const name = authDraft.name.trim();
-    const handle = authDraft.handle.trim().toLowerCase().replace(/^@/,'');
+    const name = (nameEl ? nameEl.value : '').trim();
+    const handle = (handleEl ? handleEl.value : '').trim().toLowerCase().replace(/^@/,'');
     if(!/^[a-z0-9_]{3,20}$/.test(handle)) return fail('Handle needs 3–20 characters: lowercase letters, numbers, underscores.');
     if(byHandle(handle)) return fail('That handle is taken.');
+    if(db.users.some(u => u.email && u.email === who))
+      return fail('There is already an account on that email.');
     if(!who.includes('@')) return fail('That email does not look like an email.');
     if(pass.length < 8) return fail('Password needs at least 8 characters.');
     me = {id:id(),handle,name:name||handle,email:who,pass,state:'mundane',color:colorFor(handle),
           bio:'',dealing:'',okay:'',bad:'',pronouns:'',loc:'',photo:null,joined:now()};
     db.users.push(me); save();
-    localStorage.setItem(KEY+'.me', me.id); authDraft = {name:'',handle:'',who:''};
+    localStorage.setItem(KEY+'.me', me.id);
     view = {name:'settings'}; render(); toast('Welcome. Tell us the real version.'); return;
   }
   const u = db.users.find(x => (x.handle===who || x.email===who) && x.pass);
@@ -466,7 +531,7 @@ function post(){
 }
 
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-go],[data-tab],[data-rx],[data-csend],[data-fol],[data-del],[data-st],[data-st2],[data-auth],#send,#savep,#logout,#unpick,#unavatar');
+  const t = e.target.closest('[data-go],[data-tab],[data-rx],[data-thread],[data-csend],[data-fol],[data-del],[data-st],[data-st2],[data-auth],#send,#savep,#logout,#unpick,#unavatar');
   if(!t) return;
 
   if(t.dataset.auth){
@@ -477,6 +542,11 @@ document.addEventListener('click', e => {
   if(t.dataset.go) return go(t.dataset.go);
   if(t.dataset.tab){ view = null; tab = t.dataset.tab; render(); return; }
 
+  if(t.dataset.thread){
+    const n = +t.dataset.thread;
+    if(openThreads.has(n)) openThreads.delete(n); else openThreads.add(n);
+    render(); return;
+  }
   if(t.dataset.rx){
     const p = +t.dataset.rx, k = t.dataset.kind;
     const i = db.reactions.findIndex(r=>r.post===p&&r.user===me.id&&r.kind===k);
@@ -489,6 +559,10 @@ document.addEventListener('click', e => {
     const body = inp.value.trim();
     if(!body) return toast('Empty comment.');
     db.comments.push({id:id(),post:p,user:me.id,body,at:now()});
+    // Clear before rendering: snapshot() reads the live DOM, so a stale value
+    // here would be restored straight back into the box we just consumed.
+    inp.value = '';
+    openThreads.add(p);
     save(); render(); return;
   }
   if(t.dataset.fol){
@@ -508,12 +582,13 @@ document.addEventListener('click', e => {
     save(); render(); toast('Deleted. That is different from editing.'); return;
   }
   if(t.dataset.st){ draftState = t.dataset.st; render(); return; }
-  if(t.dataset.st2){ me.state = t.dataset.st2; save(); render(); return; }
+  if(t.dataset.st2){ settingsState = t.dataset.st2; render(); return; }
   if(t.id === 'unpick'){ dropPhoto(draftPhoto); draftPhoto = null; render(); return; }
   if(t.id === 'unavatar'){ dropPhoto(me.photo); me.photo = null; save(); render(); return; }
   if(t.id === 'send') return post();
   if(t.id === 'savep'){
     document.querySelectorAll('[data-f]').forEach(i => me[i.dataset.f] = i.value.trim());
+    if(settingsState){ me.state = settingsState; settingsState = null; }
     if(!me.name) me.name = me.handle;
     save(); view = null; tab='you'; render(); toast('Profile saved.'); return;
   }
@@ -556,7 +631,7 @@ document.addEventListener('keydown', e => {
 // Hardware back button, handed over from the Android shell. Pops our own screen
 // stack; when there is nothing left to pop, ask the host to close the app.
 window.rawBack = function(){
-  if(view){ view = null; render(); return true; }
+  if(view){ go('back'); return true; }
   if(me && tab !== 'feed'){ tab = 'feed'; render(); return true; }
   if(window.RawHost && window.RawHost.exitApp) window.RawHost.exitApp();
   return false;
