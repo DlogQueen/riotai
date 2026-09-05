@@ -1,0 +1,28 @@
+{
+  "name": "OUIJA — RIOT AI",
+  "short_name": "OUIJA",
+  "description": "A talking board for the things already living in your apartment. Summon them to dinner.",
+  "id": "/ouija",
+  "start_url": "/ouija",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#07060a",
+  "theme_color": "#07060a",
+  "categories": ["entertainment", "lifestyle"],
+  "icons": [
+    { "src": "/static/ouija-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/ouija-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/ouija-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Summon to dinner",
+      "short_name": "Dinner",
+      "description": "Ring the bell and call them to the table",
+      "url": "/ouija?summon=dinner",
+      "icons": [{ "src": "/static/ouija-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

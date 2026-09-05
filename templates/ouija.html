@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>🕯️ OUIJA — RIOT AI</title>
-<link rel="icon" type="image/png" href="/static/logo.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07060a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OUIJA">
+<link rel="icon" type="image/png" href="/static/ouija-192.png">
+<link rel="apple-touch-icon" href="/static/ouija-apple.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=IM+Fell+English:ital@0;1&family=Roboto+Mono:wght@400;700&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -33,7 +40,9 @@ body {
 
 /* header --------------------------------------------------------------- */
 header {
-  position:relative; z-index:3; width:100%; padding:10px 18px 4px;
+  position:relative; z-index:3; width:100%;
+  padding:calc(10px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) 4px
+          calc(18px + env(safe-area-inset-left));
   display:flex; justify-content:space-between; align-items:center; gap:12px;
 }
 .brand { font-family:'Pirata One', cursive; font-size:26px; letter-spacing:2px;
@@ -59,6 +68,7 @@ header {
   align-items:center; justify-content:center; padding:0 10px 4px; min-height:0; }
 #board {
   position:relative; width:min(100%, 88vh * 1.55); aspect-ratio:1.55/1; max-height:100%;
+  container-type:size; container-name:board;
   border-radius:14px 14px 22px 22px;
   background:
     radial-gradient(ellipse at 50% 30%, #6b4a26 0%, #4a3018 55%, #2b1a0c 100%);
@@ -85,20 +95,22 @@ header {
   text-shadow:0 2px 3px rgba(0,0,0,.85), 0 0 12px rgba(0,0,0,.5);
   user-select:none; transition:color .4s, text-shadow .4s, filter .3s; white-space:nowrap;
 }
-.glyph.letter { font-size:clamp(15px, 3.4vh, 34px); }
-.glyph.digit  { font-size:clamp(13px, 2.9vh, 29px); }
-.glyph.word   { font-size:clamp(14px, 3vh, 30px); letter-spacing:3px; }
+.glyph.letter { font-size:clamp(13px, 3.4vh, 34px); font-size:clamp(13px, 4.1cqw, 34px); }
+.glyph.digit  { font-size:clamp(11px, 2.9vh, 29px); font-size:clamp(11px, 3.4cqw, 29px); }
+.glyph.word   { font-size:clamp(12px, 3vh, 30px); font-size:clamp(12px, 3.6cqw, 30px); letter-spacing:3px; }
 .glyph.lit {
   color:#ffd98a; filter:drop-shadow(0 0 14px rgba(255,180,60,.95));
   text-shadow:0 0 20px rgba(255,190,80,.95);
 }
 .deco { position:absolute; transform:translate(-50%,-50%); color:rgba(227,205,161,.5);
-  font-size:clamp(18px,4vh,40px); user-select:none; }
-#boardtitle { position:absolute; left:50%; top:9%; transform:translate(-50%,-50%);
-  font-family:'Pirata One',cursive; font-size:clamp(20px,5vh,52px); letter-spacing:12px;
+  font-size:clamp(14px,4vh,40px); font-size:clamp(14px,4.4cqw,40px); user-select:none; }
+#boardtitle { position:absolute; left:50%; top:8%; transform:translate(-50%,-50%);
+  font-family:'Pirata One',cursive; font-size:clamp(18px,5vh,52px); font-size:clamp(18px,6cqw,52px);
+  letter-spacing:.9cqw;
   color:#e8d3a6; text-shadow:0 3px 6px rgba(0,0,0,.9); }
-#boardsub { position:absolute; left:50%; top:96%; transform:translate(-50%,-50%);
-  font-family:'Roboto Mono'; font-size:clamp(7px,1.3vh,11px); letter-spacing:5px; color:rgba(232,211,166,.45); }
+#boardsub { position:absolute; left:50%; bottom:1.6%; transform:translateX(-50%);
+  font-family:'Roboto Mono'; font-size:clamp(6px,1.3vh,11px); font-size:clamp(6px,1.5cqw,11px);
+  letter-spacing:.5cqw; white-space:nowrap; color:rgba(232,211,166,.45); }
 
 /* planchette ----------------------------------------------------------- */
 #planchette {
@@ -115,7 +127,8 @@ header {
 
 /* console -------------------------------------------------------------- */
 #console { position:relative; z-index:3; width:100%; max-width:1000px;
-  padding:8px 14px 14px; display:flex; flex-direction:column; gap:8px; }
+  padding:8px calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom))
+          calc(14px + env(safe-area-inset-left)); display:flex; flex-direction:column; gap:8px; }
 #readout {
   min-height:46px; border:1px solid #241a10; background:rgba(0,0,0,.55);
   padding:9px 13px; border-radius:3px; display:flex; flex-direction:column; gap:3px;
@@ -164,7 +177,17 @@ button:disabled { opacity:.35; cursor:not-allowed; }
           mask:radial-gradient(circle, transparent 61px, #000 62px); }
 #veil.gone { opacity:0; visibility:hidden; }
 .warn { font-family:'Roboto Mono'; font-size:9px; letter-spacing:3px; color:#4d4234; }
-@media (max-width:640px){ #console{padding:6px 10px 10px} .row{flex-wrap:wrap} #question{min-width:100%} }
+@media (max-aspect-ratio:1/1){          /* phone held upright: a taller board */
+  #board { aspect-ratio:0.86/1; width:min(100%, 82vh * 0.86); }
+}
+@media (max-width:640px){
+  #console{ padding:6px 10px calc(10px + env(safe-area-inset-bottom)); }
+  .row{ flex-wrap:wrap; } #question{ min-width:100%; }
+  header{ padding-top:calc(6px + env(safe-area-inset-top)); }
+  .brand{ font-size:20px; } .back{ font-size:9px; padding:6px 9px; }
+  .spirit{ font-size:9px; padding:5px 8px; }
+  #spirits{ gap:4px; }
+}
 </style>
 </head>
 <body>
@@ -172,7 +195,11 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 
 <header>
   <div class="brand">OUIJA<small>RIOT AI · HOUSEHOLD SPIRITS</small></div>
-  <a class="back" href="/">← BACK TO THE LIVING</a>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <span id="offline" class="back" hidden style="border-color:#7a2b12; color:#ff8c42;">NO SIGNAL</span>
+    <button id="install" class="back" hidden style="cursor:pointer;">⤓ INSTALL BOARD</button>
+    <a class="back" href="/">← BACK TO THE LIVING</a>
+  </div>
 </header>
 
 <div id="spirits">
@@ -245,7 +272,7 @@ const DINNER= document.getElementById('dinner');
 let spirit = document.querySelector('.spirit').dataset.key;
 let busy = false;
 const glyphs = {};      // "A" -> element
-const REST = {x:50, y:58};
+const REST = {x:50, y:58};   // moved by layout()
 
 /* ── build the board ────────────────────────────────────────────────── */
 function place(text, x, y, cls, key){
@@ -263,22 +290,50 @@ function deco(text, x, y){
   el.style.left = x + '%'; el.style.top = y + '%';
   BOARD.appendChild(el);
 }
-function arc(letters, cx, cy, rx, ry, a0, a1){
+function put(key, x, y){
+  const el = glyphs[key] || decos[key];
+  if (el){ el.style.left = x + '%'; el.style.top = y + '%'; }
+}
+function arc(letters, cx, cy, rx, ry, a0 = 200, a1 = 340){
   letters.split('').forEach((ch, i) => {
     const t = a0 + (a1 - a0) * (i / (letters.length - 1));
     const r = t * Math.PI / 180;
-    place(ch, cx + rx * Math.cos(r), cy + ry * Math.sin(r), 'letter');
+    if (glyphs[ch]) put(ch, cx + rx * Math.cos(r), cy + ry * Math.sin(r));
+    else place(ch, cx + rx * Math.cos(r), cy + ry * Math.sin(r), 'letter');
   });
 }
-arc('ABCDEFGHIJKLM', 50, 63, 42, 30, 200, 340);
-arc('NOPQRSTUVWXYZ', 50, 72, 31, 20, 200, 340);
-'0123456789'.split('').forEach((d, i) =>
-  place(d, 23 + i * 6, 80, 'digit'));
-place('YES', 12, 20, 'word');
-place('NO',  88, 20, 'word');
-place('GOODBYE', 50, 88.5, 'word');
-deco('☉', 12, 8); deco('☾', 88, 8);
-deco('✦', 30, 13); deco('✦', 70, 13);
+const decos = {};
+function deco2(sym, key){
+  const el = document.createElement('div');
+  el.className = 'deco'; el.textContent = sym;
+  BOARD.appendChild(el); decos[key] = el; return el;
+}
+// built once, repositioned whenever the board changes shape
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(ch => place(ch, 50, 50, 'letter'));
+'0123456789'.split('').forEach(d => place(d, 50, 50, 'digit'));
+['YES','NO','GOODBYE'].forEach(w => place(w, 50, 50, 'word'));
+['sun','moon','starL','starR'].forEach((k, i) => deco2(['☉','☾','✦','✦'][i], k));
+
+function layout(){
+  const b = BOARD.getBoundingClientRect();
+  const portrait = b.width / b.height < 1.35;   // phone held upright
+  if (portrait){
+    arc('ABCDEFGHIJKLM', 50, 60, 41, 31);
+    arc('NOPQRSTUVWXYZ', 50, 73, 32, 22);
+    '0123456789'.split('').forEach((d, i) => put(d, 22 + i * 6.2, 85));
+    put('YES', 13, 17); put('NO', 87, 17); put('GOODBYE', 50, 93);
+    put('sun', 12, 6); put('moon', 88, 6); put('starL', 28, 11); put('starR', 72, 11);
+    REST.x = 50; REST.y = 55;
+  } else {
+    arc('ABCDEFGHIJKLM', 50, 63, 42, 30);
+    arc('NOPQRSTUVWXYZ', 50, 72, 31, 20);
+    '0123456789'.split('').forEach((d, i) => put(d, 23 + i * 6, 80));
+    put('YES', 12, 20); put('NO', 88, 20); put('GOODBYE', 50, 87.5);
+    put('sun', 12, 8); put('moon', 88, 8); put('starL', 30, 13); put('starR', 70, 13);
+    REST.x = 50; REST.y = 58;
+  }
+}
+layout();
 
 /* ── sound: everything synthesized, no files ────────────────────────── */
 let AC = null, drone = null;
@@ -332,7 +387,14 @@ function moveTo(xPct, yPct, ms, tilt){
   PLAN.style.transform = `translate(-50%,-50%) translate(${xPct/100 * BOARD.clientWidth}px, ${yPct/100 * BOARD.clientHeight}px) rotate(${tilt||0}deg)`;
 }
 function sit(){ moveTo(REST.x, REST.y, 1400, 0); }
-window.addEventListener('resize', () => { PLAN.style.transitionDuration='0ms'; moveTo(px, py, 0, 0); });
+function reshape(){
+  layout();
+  PLAN.style.transitionDuration = '0ms';
+  if (!busy) { px = REST.x; py = REST.y; }
+  moveTo(px, py, 0, 0);
+}
+window.addEventListener('resize', reshape);
+window.addEventListener('orientationchange', () => setTimeout(reshape, 120));
 sit();
 
 function glyphPct(el){
@@ -380,6 +442,26 @@ async function spell(text){
   sit();
 }
 
+/* ── the local oracle: what the board says with no signal ───────────── */
+const LOCAL = {
+  the_tenant:  ['STILL MY KITCHEN','YOU MOVED MY CHAIR','I LIVED HERE FIRST','SET 4 PLATES',
+                'THE STOVE REMEMBERS ME','NO','FINE ONE PLATE'],
+  the_hungry:  ['HUNGRY','YES','I HAVE WAITED 71 YEARS','SAVE ME THE BONES',
+                'I AM ALREADY SEATED','MORE','OPEN THE DOOR'],
+  the_static:  ['W H O I S A S K I N G','YES NO YES','WRONG QUESTION','CHANNEL 3',
+                'SOMEONE ELSE IS ON THIS BOARD','GOODBYE'],
+  grandmother: ['YOU ARE TOO THIN','EAT SOMETHING','YES BABY','I MADE ENOUGH',
+                'CALL YOUR MOTHER','SIT DOWN','IS THAT ALL YOU ARE HAVING'],
+};
+const NAMES = {};
+document.querySelectorAll('.spirit').forEach(el =>
+  NAMES[el.dataset.key] = el.textContent.trim().replace(/^\S+\s/, ''));
+function offlineOracle(){
+  const lines = LOCAL[spirit] || LOCAL.the_tenant;
+  const answer = lines[Math.floor(Math.random() * lines.length)];
+  return { spirit: NAMES[spirit] || 'THE BOARD', answer, goodbye: answer.endsWith('GOODBYE') };
+}
+
 /* ── asking ─────────────────────────────────────────────────────────── */
 async function consult(question, isDinner){
   if (busy) return;
@@ -400,7 +482,7 @@ async function consult(question, isDinner){
     });
     data = await res.json();
   } catch(e) {
-    data = { spirit:'STATIC', answer:'THE LINE IS DEAD', goodbye:false };
+    data = offlineOracle();   // no signal. they're still in the walls.
   }
   clearInterval(drifter);
 
@@ -463,6 +545,35 @@ function openBoard(){
 HOLD.addEventListener('mousedown', beginHold);
 HOLD.addEventListener('touchstart', beginHold, {passive:false});
 ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev => HOLD.addEventListener(ev, endHold));
+
+/* ── install it. the board should live on your home screen ──────────── */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () =>
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .catch(err => console.warn('the worker would not stay:', err)));
+}
+const INSTALL = document.getElementById('install');
+let prompted = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); prompted = e; INSTALL.hidden = false;
+});
+INSTALL.onclick = async () => {
+  if (!prompted) return;
+  INSTALL.hidden = true; prompted.prompt();
+  await prompted.userChoice; prompted = null;
+};
+window.addEventListener('appinstalled', () => { INSTALL.hidden = true; prompted = null; });
+
+const OFFLINE = document.getElementById('offline');
+const signal = () => { OFFLINE.hidden = navigator.onLine; };
+window.addEventListener('online', signal); window.addEventListener('offline', signal); signal();
+
+/* home-screen shortcut: /ouija?summon=dinner rings the bell on open */
+if (new URLSearchParams(location.search).get('summon') === 'dinner') {
+  const fire = () => { if (!document.getElementById('veil')) DINNER.click();
+                       else setTimeout(fire, 400); };
+  setTimeout(fire, 600);
+}
 
 /* the planchette can be pushed around by the living, too */
 let dragging = false;

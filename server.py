@@ -179,6 +179,21 @@ def ouija_board():
     return render_template('ouija.html', config=config, spirits=SPIRITS)
 
 
+@app.route('/sw.js')
+def ouija_service_worker():
+    """Served from root so the worker's scope covers the whole app."""
+    resp = send_file(BASE_DIR / 'static' / 'sw.js', mimetype='application/javascript')
+    resp.headers['Cache-Control'] = 'no-cache'
+    resp.headers['Service-Worker-Allowed'] = '/'
+    return resp
+
+
+@app.route('/manifest.webmanifest')
+def ouija_manifest():
+    return send_file(BASE_DIR / 'static' / 'manifest.webmanifest',
+                     mimetype='application/manifest+json')
+
+
 @app.route('/api/ouija/ask', methods=['POST'])
 def ouija_ask_route():
     """Put a question to the apartment and wait for the planchette to move."""
